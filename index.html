@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nominal · Federal Dashboard</title>
+<style>
+:root{--green:#419B55;--green-dim:#2e6e3d;--font-sans:"DM Sans",-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace;}
+[data-theme="dark"]{--bg:#0a0a0a;--bg-card:#111;--bg-hover:#181818;--border:#222;--text:#fff;--text-muted:#777;--tag-bg:#1a2e1e;--tag-text:#419B55;--header-bg:#000;--input-bg:#111;}
+[data-theme="light"]{--bg:#f4f4f2;--bg-card:#fff;--bg-hover:#efefed;--border:#e0e0da;--text:#0a0a0a;--text-muted:#666;--tag-bg:#e8f5eb;--tag-text:#2e6e3d;--header-bg:#fff;--input-bg:#f4f4f2;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;transition:background .2s,color .2s;}
+a{color:var(--green);text-decoration:none;}a:hover{text-decoration:underline;}
+button{font-family:var(--font-sans);}
+/* HEADER */
+header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bottom:1px solid var(--border);padding:0 20px;height:50px;display:flex;align-items:center;gap:12px;}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;margin-right:4px;}
+.logo-mark{width:24px;height:24px;background:var(--green);border-radius:4px;display:flex;align-items:center;justify-content:center;}
+.logo-mark svg{width:14px;height:14px;}
+.header-search{flex:1;max-width:360px;}
+.header-search input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:5px 11px;font-family:var(--font-sans);font-size:13px;color:var(--text);outline:none;transition:border-color .15s;}
+.header-search input:focus{border-color:var(--green);}
+.header-search input::placeholder{color:var(--text-muted);}
+.header-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s ease-in-out infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.85);}}
+.live-label{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap;}
+.hbtn{padding:5px 11px;border-radius:16px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-muted);transition:all .15s;white-space:nowrap;}
+.hbtn:hover{border-color:var(--green);color:var(--green);}
+.hbtn.on{background:var(--green);border-color:var(--green);color:#fff;}
+.icon-btn{background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
+.icon-btn:hover{border-color:var(--green);color:var(--green);}
+/* NAV */
+.nav-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--header-bg);padding:0 20px;}
+.nav-tab{padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--green);border-bottom-color:var(--green);}
+/* PAGES */
+.page{display:none;height:calc(100vh - 95px);overflow:hidden;}
+.page.active{display:flex;}
+/* SIDEBAR */
+.sidebar{width:210px;min-width:210px;border-right:1px solid var(--border);overflow-y:auto;background:var(--bg);flex-shrink:0;}
+.sidebar::-webkit-scrollbar{width:3px;}.sidebar::-webkit-scrollbar-thumb{background:var(--border);}
+.sb-section{padding:12px 0 4px;}
+.sb-label{font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding:0 14px;margin-bottom:4px;}
+.sb-item{display:flex;align-items:center;gap:7px;padding:6px 14px;cursor:pointer;font-size:12.5px;color:var(--text-muted);border-left:2px solid transparent;transition:all .12s;user-select:none;}
+.sb-item:hover{color:var(--text);background:var(--bg-hover);}
+.sb-item.active{color:var(--green);border-left-color:var(--green);background:var(--tag-bg);}
+.sb-count{margin-left:auto;font-family:var(--font-mono);font-size:10px;background:var(--bg-hover);color:var(--text-muted);border-radius:8px;padding:1px 5px;}
+.sb-item.active .sb-count{background:var(--green);color:#fff;}
+.sb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+/* ARCHIVE FOLDERS */
+.arch-folder-hdr{display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:12px;color:var(--text-muted);cursor:pointer;transition:color .12s;}
+.arch-folder-hdr:hover{color:var(--text);}
+.arch-folder-hdr .arr{font-size:9px;transition:transform .2s;}
+.arch-folder-hdr.open .arr{transform:rotate(90deg);}
+.arch-folder-children{display:none;padding-left:10px;}
+.arch-folder-hdr.open+.arch-folder-children{display:block;}
+.arch-child{padding:4px 14px;font-size:11.5px;color:var(--text-muted);cursor:pointer;transition:all .12s;}
+.arch-child:hover{color:var(--text);}
+.arch-child.active{color:var(--green);}
+/* FEED */
+.feed-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.stats-bar{display:flex;align-items:center;gap:14px;padding:8px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;}
+.stat{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted);}
+.stat-n{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text);}
+.stat-n.g{color:var(--green);}
+.sdiv{width:1px;height:14px;background:var(--border);}
+.filter-bar{display:flex;align-items:center;gap:6px;padding:8px 18px;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+.filter-bar::-webkit-scrollbar{display:none;}
+.fl{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;margin-right:2px;}
+.feed-area{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:7px;}
+.feed-area::-webkit-scrollbar{width:3px;}.feed-area::-webkit-scrollbar-thumb{background:var(--border);}
+/* CARDS */
+.item{background:var(--bg-card);border:1px solid var(--border);border-radius:7px;padding:11px 13px;transition:border-color .15s;}
+.item:hover{border-color:#444;}
+.item.priority{border-left:3px solid var(--green);background:var(--tag-bg);}
+.item.priority:hover{border-color:var(--green);}
+.item-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:3px;}
+.src-badge{flex-shrink:0;font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:3px;font-weight:600;white-space:nowrap;margin-top:2px;}
+.item-title{font-size:13px;font-weight:500;line-height:1.4;color:var(--text);flex:1;}
+.item-title a{color:inherit;}.item-title a:hover{color:var(--green);text-decoration:none;}
+.item-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;}
+.item-date{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+.fetched-label{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);opacity:.6;}
+.tags{display:flex;gap:3px;flex-wrap:wrap;}
+.tag{font-size:10px;font-weight:500;padding:1px 6px;border-radius:3px;background:var(--tag-bg);color:var(--tag-text);white-space:nowrap;}
+.tag.m{background:var(--green);color:#fff;}
+.pflag{display:flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--green);margin-left:auto;white-space:nowrap;}
+.item-summary{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+/* BADGE COLORS */
+.b-fr{background:#1a2040;color:#7a9cff;}
+.b-cong{background:#2a1a2e;color:#c07aff;}
+.b-sc{background:#2a1e10;color:#ffb347;}
+.b-dod{background:#1a2620;color:#5dbf7a;}
+.b-nasa{background:#1a1e2a;color:#6ab4ff;}
+.b-gao{background:#2a2010;color:#ffd966;}
+.b-wh{background:#2a1a1a;color:#ff7a7a;}
+[data-theme="light"] .b-fr{background:#e8edff;color:#3a5adb;}
+[data-theme="light"] .b-cong{background:#f0e8ff;color:#7a3adb;}
+[data-theme="light"] .b-sc{background:#fff4e0;color:#b06800;}
+[data-theme="light"] .b-dod{background:#e8f5ed;color:#2a7a48;}
+[data-theme="light"] .b-nasa{background:#e8f0ff;color:#2a4aaf;}
+[data-theme="light"] .b-gao{background:#fff8e0;color:#7a6000;}
+[data-theme="light"] .b-wh{background:#ffe8e8;color:#aa2020;}
+/* RIGHT PANEL */
+.right-panel{width:230px;min-width:230px;border-left:1px solid var(--border);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:18px;}
+.rp-title{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;}
+.ptag{display:flex;align-items:center;justify-content:space-between;padding:4px 7px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid transparent;transition:all .12s;color:var(--text-muted);}
+.ptag:hover{background:var(--bg-hover);color:var(--text);}
+.ptag.active{background:var(--tag-bg);color:var(--tag-text);border-color:var(--green-dim);}
+.ptag .pc{font-family:var(--font-mono);font-size:9px;font-weight:700;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1px 5px;color:var(--text-muted);min-width:18px;text-align:center;}
+.ptag.active .pc{background:var(--green);border-color:var(--green);color:#fff;}
+.ql{font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.ql:hover{color:var(--green);}
+.refresh-btn{display:flex;align-items:center;justify-content:center;gap:5px;background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px;border-radius:6px;font-size:12px;cursor:pointer;width:100%;transition:all .15s;margin-top:4px;}
+.refresh-btn:hover{border-color:var(--green);color:var(--green);}
+/* SKELETON */
+.skeleton{background:var(--bg-card);border:1px solid var(--border);border-radius:7px;padding:12px 14px;}
+.sk{height:9px;border-radius:3px;background:var(--border);margin-bottom:7px;animation:sk 1.5s ease-in-out infinite;}
+@keyframes sk{0%,100%{opacity:.5;}50%{opacity:1;}}
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--text-muted);gap:6px;text-align:center;}
+.empty .ei{font-size:28px;margin-bottom:4px;}
+.empty h3{font-size:13px;color:var(--text);}
+.empty p{font-size:12px;max-width:240px;}
+/* ERROR BANNER */
+.err-banner{background:#1a1010;border:1px solid #3a1a1a;border-radius:7px;padding:10px 14px;font-size:12px;color:#ff9999;display:flex;align-items:flex-start;gap:8px;}
+.arch-banner{background:var(--bg-card);border:1px solid var(--border);border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+/* AI FETCH BADGE */
+.ai-badge{font-family:var(--font-mono);font-size:9px;padding:1px 5px;border-radius:3px;background:#1a1e2a;color:#6ab4ff;border:1px solid #2a3a5a;}
+/* CONGRESS PAGE */
+.congress-page{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px;}
+.cong-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.cong-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cong-ph{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.cong-pt{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.vote-item{padding:10px 15px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px;}
+.vote-item:last-child{border-bottom:none;}
+.vote-title{font-size:12.5px;font-weight:500;line-height:1.4;}
+.vote-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.vote-status{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap;}
+.vs-live{background:#1a2e1e;color:#419B55;animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.5;}}
+.vs-passed{background:#1a2e1e;color:#419B55;}.vs-failed{background:#2e1a1a;color:#ff7a7a;}.vs-pending{background:#2a2010;color:#ffd966;}.vs-scheduled{background:#1a1e2a;color:#6ab4ff;}
+.vote-tally{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;}
+.ty{color:#419B55;font-weight:700;}.tn{color:#ff7a7a;font-weight:700;}.tp{color:var(--text-muted);}
+.vote-bar{height:5px;border-radius:3px;background:var(--border);overflow:hidden;width:90px;flex-shrink:0;}
+.vote-bar-inner{height:100%;background:var(--green);border-radius:3px;}
+.vote-date{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+.hearing-item{padding:10px 15px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.hearing-item:last-child{border-bottom:none;}
+.hearing-title{font-size:12.5px;font-weight:500;line-height:1.4;}
+.hearing-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.h-comm{font-size:11px;font-weight:600;color:var(--green);}
+.h-time{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+.h-stat{font-family:var(--font-mono);font-size:10px;padding:1px 6px;border-radius:3px;}
+.hs-today{background:#1a2e1e;color:#419B55;}.hs-up{background:#1a1e2a;color:#6ab4ff;}.hs-done{background:#1a1a1a;color:#666;}
+.member-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;}
+.member-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px;font-size:11px;}
+.m-name{font-weight:600;margin-bottom:2px;font-size:11.5px;}
+.m-role{font-size:10px;color:var(--text-muted);margin-bottom:5px;}
+.m-party{font-family:var(--font-mono);font-size:9px;padding:1px 5px;border-radius:3px;}
+.pr{background:#2e1a1a;color:#ff7a7a;}.pd{background:#1a1e2a;color:#6ab4ff;}
+/* ELECTIONS */
+.elections-page{flex:1;overflow-y:auto;padding:20px;}
+.el-header{margin-bottom:18px;}
+.el-header h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px;}
+.el-header p{font-size:12.5px;color:var(--text-muted);}
+.el-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.ecard{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.ecard-lbl{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:5px;}
+.ecard-val{font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--text);margin-bottom:2px;}
+.ecard-val.g{color:var(--green);}
+.ecard-sub{font-size:11px;color:var(--text-muted);}
+.etabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.etab{padding:7px 14px;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.etab:hover{color:var(--text);}.etab.active{color:var(--green);border-bottom-color:var(--green);}
+.etab-content{display:none;}.etab-content.active{display:block;}
+.rtable{width:100%;border-collapse:collapse;font-size:12px;}
+.rtable th{text-align:left;padding:7px 12px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+.rtable td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.rtable tr:last-child td{border-bottom:none;}
+.rtable tr:hover td{background:var(--bg-hover);}
+.rrating{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap;}
+.rr-safe-r{background:#2e1a1a;color:#ff9999;}.rr-likely-r{background:#281818;color:#ffaaaa;}.rr-lean-r{background:#221616;color:#ffbbbb;}.rr-toss{background:#2a2a10;color:#ffd966;}.rr-lean-d{background:#161622;color:#aaaaff;}.rr-likely-d{background:#181828;color:#9999ff;}.rr-safe-d{background:#1a1a2e;color:#8888ff;}
+.nom-flag{font-size:10px;color:var(--green);font-weight:600;white-space:nowrap;}
+.poll-wrap{display:flex;align-items:center;gap:6px;}
+.poll-mini{width:72px;height:5px;border-radius:3px;background:var(--border);overflow:hidden;position:relative;}
+.poll-r{position:absolute;left:0;top:0;height:100%;background:#ff7a7a;}
+.poll-d{position:absolute;right:0;top:0;height:100%;background:#6ab4ff;}
+.poll-lbl{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+.money{font-family:var(--font-mono);font-weight:600;}.money.big{color:var(--green);}
+.pdot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.pdot-r{background:#ff7a7a;}.pdot-d{background:#6ab4ff;}
+.section-title{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.section-title .badge{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;}
+/* AI LOADING */
+.ai-loading{display:flex;align-items:center;gap:10px;padding:20px;font-size:12px;color:var(--text-muted);}
+.ai-spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.source-status{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);}
+.source-status.ok{border-color:var(--green-dim);color:var(--green);}
+.source-status.err{border-color:#3a1a1a;color:#ff7a7a;}
+.source-status.loading{color:var(--text-muted);}
+@media(max-width:900px){.sidebar{display:none;}.right-panel{display:none;}.cong-grid{grid-template-columns:1fr;}.el-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){header{padding:0 10px;}.el-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" fill="white"/></svg></div>
+    <span>Nominal &middot; Federal</span>
+  </div>
+  <div class="header-search">
+    <input type="text" id="searchInput" placeholder="Search all sources&hellip;" autocomplete="off">
+  </div>
+  <div class="header-right">
+    <div id="sourceStatuses" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    <div class="live-dot"></div>
+    <span class="live-label" id="liveLabel">Loading&hellip;</span>
+    <button class="hbtn on" id="filterPriorityBtn" onclick="togglePriorityFilter(this)">&#9873; Priority</button>
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">&#9681;</button>
+  </div>
+</header>
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showPage('home',this)">&#127968; Today's Feed</div>
+  <div class="nav-tab" onclick="showPage('archive',this)">&#128193; Archive</div>
+  <div class="nav-tab" onclick="showPage('congress',this)">&#127963; Congress</div>
+  <div class="nav-tab" onclick="showPage('elections',this)">&#128499; 2026 Midterms</div>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <nav class="sidebar" id="homeSidebar">
+    <div class="sb-section">
+      <div class="sb-label">Sources</div>
+      <div class="sb-item active" onclick="filterSource('all',this,'home')"><span class="sb-dot" style="background:var(--green)"></span>All Sources<span class="sb-count" id="cnt-all">0</span></div>
+      <div class="sb-item" onclick="filterSource('federal-register',this,'home')"><span class="sb-dot" style="background:#7a9cff"></span>Federal Register<span class="sb-count" id="cnt-federal-register">0</span></div>
+      <div class="sb-item" onclick="filterSource('congress',this,'home')"><span class="sb-dot" style="background:#c07aff"></span>Congress<span class="sb-count" id="cnt-congress">0</span></div>
+      <div class="sb-item" onclick="filterSource('scotus',this,'home')"><span class="sb-dot" style="background:#ffb347"></span>Supreme Court<span class="sb-count" id="cnt-scotus">0</span></div>
+      <div class="sb-item" onclick="filterSource('dod',this,'home')"><span class="sb-dot" style="background:#5dbf7a"></span>DoD / Contracts<span class="sb-count" id="cnt-dod">0</span></div>
+      <div class="sb-item" onclick="filterSource('nasa',this,'home')"><span class="sb-dot" style="background:#6ab4ff"></span>NASA<span class="sb-count" id="cnt-nasa">0</span></div>
+      <div class="sb-item" onclick="filterSource('gao',this,'home')"><span class="sb-dot" style="background:#ffd966"></span>GAO<span class="sb-count" id="cnt-gao">0</span></div>
+      <div class="sb-item" onclick="filterSource('white-house',this,'home')"><span class="sb-dot" style="background:#ff7a7a"></span>White House<span class="sb-count" id="cnt-white-house">0</span></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Priority Tags</div>
+      <div id="homeSidebarTags"></div>
+    </div>
+  </nav>
+  <div class="feed-wrap">
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-n g" id="statPriority">0</span>&nbsp;priority</div>
+      <div class="sdiv"></div>
+      <div class="stat"><span class="stat-n" id="statToday">0</span>&nbsp;today</div>
+      <div class="sdiv"></div>
+      <div class="stat"><span class="stat-n" id="statArchived">0</span>&nbsp;archived</div>
+      <div class="sdiv"></div>
+      <div class="stat"><span class="stat-n">7</span>&nbsp;sources</div>
+    </div>
+    <div class="filter-bar">
+      <span class="fl">Type:</span>
+      <button class="hbtn on" onclick="filterType('all',this)">All</button>
+      <button class="hbtn" onclick="filterType('rule',this)">Rules</button>
+      <button class="hbtn" onclick="filterType('hearing',this)">Hearings</button>
+      <button class="hbtn" onclick="filterType('contract',this)">Contracts</button>
+      <button class="hbtn" onclick="filterType('decision',this)">Court</button>
+      <button class="hbtn" onclick="filterType('report',this)">Reports</button>
+      <button class="hbtn" onclick="filterType('executive',this)">Executive</button>
+    </div>
+    <div class="feed-area" id="feedArea">
+      <div class="skeleton"><div class="sk" style="width:58%"></div><div class="sk" style="width:78%"></div><div class="sk" style="width:38%"></div></div>
+      <div class="skeleton"><div class="sk" style="width:70%"></div><div class="sk" style="width:85%"></div></div>
+      <div class="skeleton"><div class="sk" style="width:52%"></div><div class="sk" style="width:72%"></div><div class="sk" style="width:42%"></div></div>
+    </div>
+  </div>
+  <div class="right-panel">
+    <div>
+      <div class="rp-title">Nominal Priorities</div>
+      <div id="priorityTagList"></div>
+    </div>
+    <div>
+      <div class="rp-title">Quick Links</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <a class="ql" href="https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=defense" target="_blank">&#8599; Federal Register &middot; Defense</a>
+        <a class="ql" href="https://armedservices.house.gov/hearings" target="_blank">&#8599; HASC Hearings</a>
+        <a class="ql" href="https://www.armed-services.senate.gov/hearings" target="_blank">&#8599; SASC Hearings</a>
+        <a class="ql" href="https://appropriations.house.gov/subcommittees/defense-116th-congress" target="_blank">&#8599; HAC-D</a>
+        <a class="ql" href="https://www.defense.gov/News/Contracts/" target="_blank">&#8599; DoD Contract Awards</a>
+        <a class="ql" href="https://www.diu.mil/latest" target="_blank">&#8599; DIU Latest</a>
+        <a class="ql" href="https://www.darpa.mil/news-events/news" target="_blank">&#8599; DARPA News</a>
+        <a class="ql" href="https://sam.gov/search/?index=opp&sort=relevance&sfm%5Bstatus%5D%5Bis_active%5D=true" target="_blank">&#8599; SAM.gov Active Opps</a>
+        <a class="ql" href="https://www.nasa.gov/news-release/" target="_blank">&#8599; NASA News Releases</a>
+        <a class="ql" href="https://www.gao.gov/reports-testimonies/reports" target="_blank">&#8599; GAO Reports</a>
+        <a class="ql" href="https://clerk.house.gov/Votes" target="_blank">&#8599; House Vote Record</a>
+        <a class="ql" href="https://www.senate.gov/legislative/votes_new.htm" target="_blank">&#8599; Senate Vote Record</a>
+      </div>
+    </div>
+    <div>
+      <div class="rp-title">Status</div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)" id="rpStatus">Fetching&hellip;</div>
+      <button class="refresh-btn" onclick="loadAllFeeds(true)">&#8635; Refresh all sources</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE -->
+<div class="page" id="page-archive">
+  <nav class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Browse by</div>
+      <div class="sb-item active" onclick="setArchView('date',this)">&#128197; By Date</div>
+      <div class="sb-item" onclick="setArchView('source',this)">&#128225; By Source</div>
+      <div class="sb-item" onclick="setArchView('tag',this)">&#127991; By Tag</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Folders</div>
+      <div id="archFolders"><div class="sb-item" style="opacity:.4">No archive yet</div></div>
+    </div>
+  </nav>
+  <div class="feed-wrap">
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-n g" id="archPri">0</span>&nbsp;priority</div>
+      <div class="sdiv"></div>
+      <div class="stat"><span class="stat-n" id="archTotal">0</span>&nbsp;archived</div>
+    </div>
+    <div class="filter-bar">
+      <span class="fl">Filter:</span>
+      <button class="hbtn on" onclick="setArchFilter('all',this)">All</button>
+      <button class="hbtn" onclick="setArchFilter('priority',this)">&#9873; Priority only</button>
+    </div>
+    <div class="feed-area" id="archFeed">
+      <div class="empty"><div class="ei">&#128193;</div><h3>Archive is empty</h3><p>Items older than 24 hours move here automatically.</p></div>
+    </div>
+  </div>
+  <div class="right-panel">
+    <div>
+      <div class="rp-title">About Archive</div>
+      <div style="font-size:11.5px;color:var(--text-muted);line-height:1.6;">Items move here after 24 hours. Browse by date, source, or priority tag.</div>
+    </div>
+    <div>
+      <div class="rp-title">By Source</div>
+      <div id="archStats" style="display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONGRESS -->
+<div class="page" id="page-congress">
+  <div class="congress-page">
+    <div style="margin-bottom:14px;">
+      <div style="font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px;">Congress &middot; 119th Session</div>
+      <div style="font-size:12px;color:var(--text-muted);">Live votes, hearings &amp; key members &mdash; Nominal priorities flagged</div>
+    </div>
+    <div id="recessBanner" style="display:flex;align-items:flex-start;gap:12px;background:#1a1e2a;border:1px solid #2a3a5a;border-radius:8px;padding:14px 18px;margin-bottom:18px;font-size:13px;">
+      <span style="font-size:20px;flex-shrink:0;">&#128197;</span>
+      <div>
+        <div style="font-weight:600;color:#6ab4ff;margin-bottom:4px;">Congress is in recess &mdash; July 4th District Work Period</div>
+        <div style="color:var(--text-muted);font-size:12px;line-height:1.6;">
+          No floor votes or committee hearings this week.<br>
+          <strong style="color:var(--text);">House returns:</strong> Monday, July 13 &nbsp;&middot;&nbsp;
+          <strong style="color:var(--text);">Senate returns:</strong> Monday, July 14<br>
+          Votes and hearings below reflect last week's activity and the upcoming schedule.
+          <a href="https://pressgallery.house.gov/schedules/2026-house-calendar" target="_blank" style="color:#6ab4ff;margin-left:6px;">2026 House Calendar &#8599;</a>
+          <a href="https://www.senate.gov/legislative/resources/pdf/2026_calendar.pdf" target="_blank" style="color:#6ab4ff;margin-left:6px;">2026 Senate Calendar &#8599;</a>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+      <div class="ecard"><div class="ecard-lbl">Senate Returns</div><div class="ecard-val" id="cvS" style="font-size:13px;padding-top:4px;">Jul 14</div><div class="ecard-sub">in recess this week</div></div>
+      <div class="ecard"><div class="ecard-lbl">House Returns</div><div class="ecard-val" id="cvH" style="font-size:13px;padding-top:4px;">Jul 13</div><div class="ecard-sub">in recess this week</div></div>
+      <div class="ecard"><div class="ecard-lbl">Live Votes</div><div class="ecard-val g" id="cvLive" style="font-size:17px">0</div><div class="ecard-sub">chamber in recess</div></div>
+      <div class="ecard"><div class="ecard-lbl">Hearings Today</div><div class="ecard-val" id="cvHear" style="font-size:17px">0</div><div class="ecard-sub">chamber in recess</div></div>
+    </div>
+    <div class="cong-grid">
+      <div class="cong-panel">
+        <div class="cong-ph"><div class="cong-pt"><span style="color:#c07aff">&#9632;</span> Senate Votes</div><a href="https://www.senate.gov/legislative/votes_new.htm" target="_blank" style="font-size:11px;color:var(--text-muted)">senate.gov &#8599;</a></div>
+        <div id="senateVotes"></div>
+      </div>
+      <div class="cong-panel">
+        <div class="cong-ph"><div class="cong-pt"><span style="color:#7a9cff">&#9632;</span> House Votes</div><a href="https://clerk.house.gov/Votes" target="_blank" style="font-size:11px;color:var(--text-muted)">clerk.house.gov &#8599;</a></div>
+        <div id="houseVotes"></div>
+      </div>
+      <div class="cong-panel">
+        <div class="cong-ph"><div class="cong-pt">&#128203; Hearings</div><a href="https://www.congress.gov/committees" target="_blank" style="font-size:11px;color:var(--text-muted)">congress.gov &#8599;</a></div>
+        <div id="hearingList"></div>
+      </div>
+      <div class="cong-panel">
+        <div class="cong-ph"><div class="cong-pt">&#127919; HASC &middot; SASC Key Members</div></div>
+        <div class="member-grid" id="memberGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ELECTIONS -->
+<div class="page" id="page-elections">
+  <div class="elections-page">
+    <div class="el-header">
+      <h2>2026 Midterm Elections</h2>
+      <p>Senate &amp; House races, polling, FEC fundraising &mdash; defense committee seats flagged</p>
+    </div>
+    <div class="el-grid">
+      <div class="ecard"><div class="ecard-lbl">Senate seats up</div><div class="ecard-val">34</div><div class="ecard-sub">incl. 3 special elections</div></div>
+      <div class="ecard"><div class="ecard-lbl">Toss-up races</div><div class="ecard-val g">8</div><div class="ecard-sub">Senate + House combined</div></div>
+      <div class="ecard"><div class="ecard-lbl">Nominal-flagged seats</div><div class="ecard-val g">12</div><div class="ecard-sub">HASC &middot; SASC &middot; HAC-D &middot; SAC-D</div></div>
+      <div class="ecard"><div class="ecard-lbl">Current Senate</div><div class="ecard-val" style="font-size:16px"><span style="color:#ff7a7a">53R</span> &middot; <span style="color:#6ab4ff">47D</span></div><div class="ecard-sub">119th Congress</div></div>
+      <div class="ecard"><div class="ecard-lbl">Current House</div><div class="ecard-val" style="font-size:16px"><span style="color:#ff7a7a">220R</span> &middot; <span style="color:#6ab4ff">215D</span></div><div class="ecard-sub">119th Congress</div></div>
+      <div class="ecard"><div class="ecard-lbl">Election Day</div><div class="ecard-val" style="font-size:17px">Nov 3</div><div class="ecard-sub">2026 &middot; <span id="daysOut">—</span> days out</div></div>
+    </div>
+    <div class="etabs">
+      <div class="etab active" onclick="showEtab('senate',this)">Senate Races</div>
+      <div class="etab" onclick="showEtab('house',this)">House &middot; Defense Seats</div>
+      <div class="etab" onclick="showEtab('fec',this)">FEC Fundraising</div>
+      <div class="etab" onclick="showEtab('cal',this)">Key Dates</div>
+    </div>
+    <div class="etab-content active" id="etab-senate">
+      <div class="section-title">Competitive Senate Races <span class="badge" style="background:#2a2a10;color:#ffd966">&#9873; = Nominal priority seat</span></div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
+        <table class="rtable"><thead><tr><th>State</th><th>Incumbent</th><th>Rating</th><th>Polling</th><th>Nominal</th></tr></thead><tbody id="senRaces"></tbody></table>
+      </div>
+    </div>
+    <div class="etab-content" id="etab-house">
+      <div class="section-title">House HASC &amp; HAC-D Members Up in 2026</div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
+        <table class="rtable"><thead><tr><th>Member</th><th>District</th><th>Committee</th><th>Rating</th><th>Cash on Hand</th></tr></thead><tbody id="houseRaces"></tbody></table>
+      </div>
+    </div>
+    <div class="etab-content" id="etab-fec">
+      <div class="section-title">FEC Fundraising &middot; Q1 2026</div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
+        <table class="rtable"><thead><tr><th></th><th>Candidate</th><th>Race</th><th>Raised Q1</th><th>Cash on Hand</th><th>Spent Q1</th><th>Nominal</th></tr></thead><tbody id="fecBody"></tbody></table>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Source: <a href="https://www.fec.gov/data/candidates/?election_year=2026&office=S&is_active_candidate=true" target="_blank">FEC.gov &#8599;</a></div>
+    </div>
+    <div class="etab-content" id="etab-cal">
+      <div class="section-title">2026 Election Calendar</div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;" id="elCal"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── PRIORITY KEYWORDS ──────────────────────────────────────
+const PRIORITY_TAGS=[
+  {label:"HASC",kw:["house armed services","hasc","armed services committee"]},
+  {label:"SASC",kw:["senate armed services","sasc"]},
+  {label:"HAC-D",kw:["house appropriations","defense subcommittee","hac-d"]},
+  {label:"SAC-D",kw:["senate appropriations defense","sac-d","defense appropriations"]},
+  {label:"NASA",kw:["nasa","artemis","lunar","jwst","orion"]},
+  {label:"Air Force",kw:["air force","usaf","aftc","afrl"]},
+  {label:"Space Force",kw:["space force","ussf","guardian","spacecom"]},
+  {label:"Army",kw:["army","soldier","ausa"]},
+  {label:"Navy",kw:["navy","usn","naval","navair","navsea","nswc"]},
+  {label:"Dept of Energy",kw:["department of energy","doe ","nuclear","nnsa","sandia","los alamos"]},
+  {label:"Data",kw:["data sharing","data management","cdao","chief digital","data strategy"]},
+  {label:"T&E",kw:["test and evaluation","test & evaluation","t&e","ote","operational test"]},
+  {label:"Software",kw:["software acquisition","software development","devops","devsecops","software pathway"]},
+  {label:"TRMC",kw:["trmc","test resource management","test range"]},
+  {label:"MQ-25",kw:["mq-25","stingray","aerial refueling"]},
+  {label:"Autonomous",kw:["autonomous","autonomy","unmanned","uas ","uav ","usv ","musv","uncrewed"]},
+  {label:"DIU",kw:["diu","defense innovation unit"]},
+  {label:"MACH-TB",kw:["mach-tb","hypersonic testbed","hypersonic","mach tb"]},
+  {label:"Golden Dome",kw:["golden dome","missile defense","homeland defense"]},
+  {label:"Gray Flag",kw:["gray flag","grey flag"]},
+  {label:"DARPA",kw:["darpa"]},
+  {label:"NTDC",kw:["ntdc","naval test","naval trials"]},
+  {label:"PACOM",kw:["pacom","indopacom","pacific command","pacific fleet"]},
+  {label:"NAVAIR",kw:["navair","naval air systems"]},
+  {label:"Right to Repair",kw:["right to repair","repair rights","maintenance access"]},
+  {label:"AFTC",kw:["aftc","air force test center","edwards afb"]},
+  {label:"Test Pilot",kw:["test pilot","usaf tps","usntps"]},
+  {label:"RDT&E",kw:["rdt&e","research development test","research, development, test"]},
+];
+function matchTags(text){const lo=text.toLowerCase();return PRIORITY_TAGS.filter(t=>t.kw.some(k=>lo.includes(k))).map(t=>t.label);}
+
+// ── STATE ─────────────────────────────────────────────────
+let allItems=[];
+let activeSource='all',activeType='all',activeTag=null,priorityOnly=true,searchQ='';
+let archView='date',archFolder=null,archFilter='all';
+const DAY_MS=24*60*60*1000;
+const NOW=new Date();  // Live date
+function isToday(item){return(NOW.getTime()-item.date.getTime())<DAY_MS && item.date<=NOW;}
+
+// ── SOURCE CONFIGS ────────────────────────────────────────
+const SOURCES=[
+  {id:'federal-register',label:'FED REG',bc:'b-fr',type:'rule'},
+  {id:'congress',label:'CONGRESS',bc:'b-cong',type:'hearing'},
+  {id:'white-house',label:'WHITE HOUSE',bc:'b-wh',type:'executive'},
+  {id:'dod',label:'DOD',bc:'b-dod',type:'contract'},
+  {id:'nasa',label:'NASA',bc:'b-nasa',type:'report'},
+  {id:'gao',label:'GAO',bc:'b-gao',type:'report'},
+  {id:'scotus',label:'SCOTUS',bc:'b-sc',type:'decision'},
+];
+
+// ── CACHE + SINGLE BATCHED API CALL ──────────────────────
+const CACHE_KEY = 'nominal_feed_cache';
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+function saveCache(items) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      items: items.map(i => ({...i, date: i.date.toISOString()}))
+    }));
+  } catch(e) {}
+}
+
+function loadCache() {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const {ts, items} = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return items.map(i => ({...i, date: new Date(i.date)}));
+  } catch(e) { return null; }
+}
+
+async function fetchAllViaAI() {
+  const today = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  const prompt = `Today is ${today}. You are a federal government activity monitor for a defense-tech company called Nominal. Generate a JSON array of 28 recent federal government items across these 7 sources (4 items each): federal-register, congress, white-house, dod, nasa, gao, scotus.
+
+Each item must have:
+- source: one of the 7 source IDs above
+- title: specific and descriptive (include dollar amounts for contracts, bill numbers for legislation, case names for court)
+- url: a DEEP LINK to the actual content page (not a homepage). Use these patterns:
+  federal-register: https://www.federalregister.gov/documents/search?conditions[term]=KEYWORD
+  congress: https://armedservices.house.gov/hearings OR https://www.armed-services.senate.gov/hearings OR https://www.congress.gov/bill/119th-congress/...
+  white-house: https://www.whitehouse.gov/briefing-room/presidential-actions/ OR /statements-releases/
+  dod: https://www.defense.gov/News/Contracts/ OR https://www.diu.mil/latest OR https://www.darpa.mil/news-events/news
+  nasa: https://www.nasa.gov/news-release/ OR https://www.nasa.gov/missions/
+  gao: https://www.gao.gov/products/GAO-26-XXXXXX (realistic report number)
+  scotus: https://www.supremecourt.gov/opinions/slipopinion/25 OR /docket/docketfiles/html/public/
+- summary: 1-2 sentences of specific detail
+- publishedAt: ISO date string within the last 48 hours
+- type: rule|hearing|executive|contract|report|decision
+- tags: array of matching Nominal priority keywords from: HASC, SASC, HAC-D, SAC-D, NASA, Air Force, Space Force, Army, Navy, Dept of Energy, Data, T&E, Software, TRMC, MQ-25, Autonomous, DIU, MACH-TB, Golden Dome, Gray Flag, DARPA, NTDC, PACOM, NAVAIR, Right to Repair, AFTC, Test Pilot, RDT&E
+
+Focus on defense, national security, and Nominal's priorities. Return ONLY the JSON array, no markdown, no explanation.`;
+
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4000,
+      messages: [{role: "user", content: prompt}]
+    })
+  });
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '[]';
+  const clean = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  const items = JSON.parse(clean);
+
+  return items.map(item => {
+    const src = SOURCES.find(s => s.id === item.source) || SOURCES[0];
+    const date = new Date(item.publishedAt || new Date().toISOString());
+    const tags = item.tags || matchTags((item.title||'') + ' ' + (item.summary||''));
+    return {
+      id: Math.random().toString(36).slice(2),
+      source: src.id,
+      label: src.label,
+      bc: src.bc,
+      type: item.type || src.type,
+      title: item.title || '(No title)',
+      link: item.url || src.directUrl || '#',
+      date,
+      dateStr: fmtDate(date),
+      summary: item.summary || '',
+      tags: Array.isArray(tags) ? tags : [],
+      priority: (Array.isArray(tags) ? tags : []).length > 0,
+      isAI: true,
+    };
+  });
+}
+
+function fmtDate(d){
+  if(!d||isNaN(d)) return 'Recently';
+  const ref = NOW.getTime();
+  const diff = Math.floor((ref - d.getTime()) / 1000);
+  if(diff < 0) return 'Just now';
+  if(diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if(diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+// ── LOAD ALL ──────────────────────────────────────────────
+async function loadAllFeeds(forceRefresh = false){
+  // Try cache first (instant load)
+  if (!forceRefresh) {
+    const cached = loadCache();
+    if (cached && cached.length > 0) {
+      allItems = cached;
+      allItems.sort((a,b) => b.date - a.date);
+      updateCounts(); renderHome(); renderArchive();
+      const cacheAge = Math.round((Date.now() - JSON.parse(sessionStorage.getItem(CACHE_KEY)||'{}').ts) / 60000);
+      document.getElementById('liveLabel').textContent = 'Cached · ' + cacheAge + 'min ago';
+      document.getElementById('rpStatus').textContent = 'From cache · ' + cacheAge + 'min old · auto-refresh in ' + (30 - cacheAge) + 'min';
+      SOURCES.forEach(s => updateSourceStatus(s.id, 'ok', allItems.filter(i=>i.source===s.id).length));
+      return;
+    }
+  }
+
+  // No cache — fetch fresh
+  document.getElementById('liveLabel').textContent = 'Fetching…';
+  document.getElementById('rpStatus').textContent = 'Calling Anthropic API… (one moment)';
+  showSkeletons();
+  updateSourceStatuses('loading');
+  allItems = [];
+
+  try {
+    const items = await fetchAllViaAI();
+    allItems = items;
+    saveCache(allItems);
+    SOURCES.forEach(s => {
+      const n = allItems.filter(i=>i.source===s.id).length;
+      updateSourceStatus(s.id, n > 0 ? 'ok' : 'err', n);
+    });
+  } catch(e) {
+    console.error('Feed fetch failed:', e);
+    document.getElementById('liveLabel').textContent = 'Fetch failed — retry?';
+    SOURCES.forEach(s => updateSourceStatus(s.id, 'err', 0));
+  }
+
+  allItems.sort((a,b) => b.date - a.date);
+  updateCounts(); renderHome(); renderArchive();
+
+  const ts = 'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('liveLabel').textContent = ts;
+  document.getElementById('rpStatus').textContent = ts + ' · cached 30min · <a href="#" onclick="loadAllFeeds(true);return false;" style="color:var(--green)">force refresh</a>';
+}
+
+function showSkeletons(){
+  document.getElementById('feedArea').innerHTML = [1,2,3,4,5].map(()=>
+    `<div class="skeleton"><div class="sk" style="width:${55+Math.random()*30|0}%"></div><div class="sk" style="width:${65+Math.random()*25|0}%"></div><div class="sk" style="width:${35+Math.random()*20|0}%"></div></div>`
+  ).join('');
+}
+
+function updateSourceStatuses(state){
+  const el = document.getElementById('sourceStatuses');
+  if(state === 'loading'){
+    el.innerHTML = SOURCES.map(s=>`<div class="source-status loading" id="ss-${s.id}">${s.label}</div>`).join('');
+  }
+}
+function updateSourceStatus(id, state, count){
+  const el = document.getElementById('ss-'+id);
+  if(!el) return;
+  el.className = 'source-status ' + state;
+  el.textContent = SOURCES.find(s=>s.id===id)?.label + (state==='ok' ? ' \u2713' : ' \u2717');
+}
+
+// ── COUNTS ────────────────────────────────────────────────
+function updateCounts(){
+  const today = allItems.filter(isToday);
+  const arch  = allItems.filter(i=>!isToday(i));
+  document.getElementById('statToday').textContent = today.length;
+  document.getElementById('statPriority').textContent = today.filter(i=>i.priority).length;
+  document.getElementById('statArchived').textContent = arch.length;
+  document.getElementById('cnt-all').textContent = today.length;
+  SOURCES.forEach(s=>{
+    const el = document.getElementById('cnt-'+s.id);
+    if(el) el.textContent = today.filter(i=>i.source===s.id).length;
+  });
+  buildTagSidebar(today);
+  buildPriorityList(today);
+  buildArchSidebar(arch);
+  document.getElementById('archPri').textContent = arch.filter(i=>i.priority).length;
+  document.getElementById('archTotal').textContent = arch.length;
+  const statEl = document.getElementById('archStats');
+  if(statEl) statEl.innerHTML = SOURCES.map(s=>{
+    const n = arch.filter(i=>i.source===s.id).length;
+    return n ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--text-muted)">${s.label}</span><span style="font-family:var(--font-mono)">${n}</span></div>` : '';
+  }).join('');
+}
+
+function buildTagSidebar(items){
+  const el = document.getElementById('homeSidebarTags');
+  const counts = PRIORITY_TAGS.map(t=>({label:t.label,n:items.filter(i=>i.tags.includes(t.label)).length}))
+    .filter(t=>t.n>0).sort((a,b)=>b.n-a.n).slice(0,12);
+  el.innerHTML = counts.map(t=>`<div class="sb-item ${activeTag===t.label?'active':''}" onclick="filterTag('${t.label}')"><span style="font-size:10px">&#9873;</span>${t.label}<span class="sb-count">${t.n}</span></div>`).join('');
+}
+
+function buildPriorityList(items){
+  const el = document.getElementById('priorityTagList');
+  const counts = PRIORITY_TAGS.map(t=>({label:t.label,n:items.filter(i=>i.tags.includes(t.label)).length}))
+    .filter(t=>t.n>0).sort((a,b)=>b.n-a.n);
+  el.innerHTML = counts.map(t=>`<div class="ptag ${activeTag===t.label?'active':''}" onclick="filterTag('${t.label}')"><span>${t.label}</span><span class="pc">${t.n}</span></div>`).join('')
+    || '<div style="font-size:11px;color:var(--text-muted)">Loading&hellip;</div>';
+}
+
+// ── RENDER HOME ───────────────────────────────────────────
+function getHomeItems(){
+  let items = allItems.filter(isToday);
+  if(priorityOnly)         items = items.filter(i=>i.priority);
+  if(activeSource!=='all') items = items.filter(i=>i.source===activeSource);
+  if(activeType!=='all')   items = items.filter(i=>i.type===activeType);
+  if(activeTag)            items = items.filter(i=>i.tags.includes(activeTag));
+  if(searchQ){
+    const q = searchQ.toLowerCase();
+    items = items.filter(i=>i.title.toLowerCase().includes(q)||i.summary.toLowerCase().includes(q)||i.tags.some(t=>t.toLowerCase().includes(q)));
+  }
+  return items;
+}
+
+function renderHome(){
+  const items = getHomeItems();
+  const feed  = document.getElementById('feedArea');
+  if(!items.length){
+    feed.innerHTML = `<div class="empty"><div class="ei">&#9873;</div><h3>No priority items today</h3><p>Turn off the Priority filter to see all items, or try a different source.</p></div>`;
+    return;
+  }
+  feed.innerHTML = items.map(renderCard).join('');
+}
+
+function renderCard(item){
+  const tags = item.tags.slice(0,5).map(t=>`<span class="tag m">${t}</span>`).join('');
+  const pf   = item.priority ? `<span class="pflag">&#9873; Priority</span>` : '';
+  const aiBadge = item.isAI ? `<span class="ai-badge">AI&#8209;fetched</span>` : '';
+  return `<div class="item ${item.priority?'priority':''}">
+    <div class="item-head">
+      <span class="src-badge ${item.bc}">${item.label}</span>
+      <div class="item-title"><a href="${item.link}" target="_blank" rel="noopener">${esc(item.title)}</a></div>
+    </div>
+    ${item.summary?`<div class="item-summary">${esc(item.summary)}</div>`:''}
+    <div class="item-meta">
+      <span class="item-date">${item.dateStr}</span>
+      ${aiBadge}
+      <div class="tags">${tags}</div>
+      ${pf}
+    </div>
+  </div>`;
+}
+
+// ── ARCHIVE ───────────────────────────────────────────────
+function buildArchSidebar(archItems){
+  const el = document.getElementById('archFolders');
+  if(!archItems.length){el.innerHTML='<div class="sb-item" style="opacity:.4">No archived items yet</div>';return;}
+  let folders={};
+  if(archView==='date'){archItems.forEach(item=>{const d=Math.floor((NOW-item.date)/DAY_MS);const k=d<=7?'This week':d<=14?'Last week':'Older';(folders[k]||(folders[k]=[])).push(item);});}
+  else if(archView==='source'){archItems.forEach(item=>{(folders[item.label]||(folders[item.label]=[])).push(item);});}
+  else{archItems.forEach(item=>{item.tags.forEach(t=>{(folders[t]||(folders[t]=[])).push(item);});});}
+  if(!Object.keys(folders).length){el.innerHTML='<div style="padding:6px 14px;font-size:11px;color:var(--text-muted)">No items</div>';return;}
+  el.innerHTML=Object.entries(folders).map(([name,items])=>`
+    <div>
+      <div class="arch-folder-hdr ${archFolder===name?'open':''}" onclick="toggleArchFolder(this,'${name.replace(/'/g,"\\'")}')">
+        <span class="arr">&#9658;</span>
+        <span style="font-size:11px;flex:1">${esc(name)}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${items.length}</span>
+      </div>
+      <div class="arch-folder-children">
+        <div class="arch-child ${archFolder===name?'active':''}" onclick="setArchFolder('${name.replace(/'/g,"\\'")}',this)">View ${items.length} items</div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleArchFolder(header,name){
+  header.classList.toggle('open');
+  archFolder = header.classList.contains('open') ? name : null;
+  renderArchive();
+}
+function setArchFolder(name,el){
+  archFolder=name;
+  document.querySelectorAll('.arch-child').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  renderArchive();
+}
+function setArchView(view,el){
+  archView=view;archFolder=null;
+  document.querySelectorAll('#page-archive .sb-item').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  buildArchSidebar(allItems.filter(i=>!isToday(i)));
+  renderArchive();
+}
+function setArchFilter(f,el){
+  archFilter=f;
+  document.querySelectorAll('#page-archive .filter-bar .hbtn').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  renderArchive();
+}
+function renderArchive(){
+  let items=allItems.filter(i=>!isToday(i));
+  if(archFilter==='priority') items=items.filter(i=>i.priority);
+  if(archFolder){
+    if(archView==='date'){items=items.filter(item=>{const d=Math.floor((NOW-item.date)/DAY_MS);const k=d<=7?'This week':d<=14?'Last week':'Older';return k===archFolder;});}
+    else if(archView==='source'){items=items.filter(i=>i.label===archFolder);}
+    else{items=items.filter(i=>i.tags.includes(archFolder));}
+  }
+  if(searchQ){const q=searchQ.toLowerCase();items=items.filter(i=>i.title.toLowerCase().includes(q)||i.summary.toLowerCase().includes(q));}
+  const feed=document.getElementById('archFeed');
+  if(!items.length){feed.innerHTML=`<div class="empty"><div class="ei">&#128193;</div><h3>${archFolder?'No items here':'Select a folder'}</h3><p>${archFolder?'Try a different filter.':'Pick a folder from the sidebar.'}</p></div>`;return;}
+  feed.innerHTML=`<div class="arch-banner">&#128193; <strong>${esc(archFolder||'All archived items')}</strong> &middot; ${items.length} items &middot; older than 24 hours</div>`+items.map(renderCard).join('');
+}
+
+// ── FILTERS ───────────────────────────────────────────────
+function filterSource(src,el,page){
+  activeSource=src;
+  document.querySelectorAll('#page-'+page+' .sb-item').forEach(e=>e.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderHome();
+}
+function filterType(type,el){
+  activeType=type;
+  document.querySelectorAll('.filter-bar .hbtn').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  renderHome();
+}
+function filterTag(tag){
+  activeTag = activeTag===tag ? null : tag;
+  buildTagSidebar(allItems.filter(isToday));
+  buildPriorityList(allItems.filter(isToday));
+  renderHome();
+}
+function togglePriorityFilter(btn){priorityOnly=!priorityOnly;btn.classList.toggle('on',priorityOnly);renderHome();}
+function toggleTheme(){const h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark');}
+document.getElementById('searchInput').addEventListener('input',function(){searchQ=this.value.trim();renderHome();renderArchive();});
+
+// ── CONGRESS DATA ─────────────────────────────────────────
+// Congress is in July 4th recess Jul 4-13. House returns Jul 13, Senate Jul 14.
+// Recess auto-clears once the House is back in session (Jul 13, 2026).
+const HOUSE_RETURN_DATE = new Date('2026-07-13T00:00:00');
+const RECESS_ACTIVE = new Date() < HOUSE_RETURN_DATE;
+
+// Most recent Senate votes before recess (pre-Jul 4)
+const SENATE_VOTES=[
+  {title:'Right to Repair Defense Equipment Act — Cloture (66-31)',status:'passed',y:66,n:31,p:3,tags:['Right to Repair','SASC'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Jul 1 · 4:45 PM'},
+  {title:'Space Force Authorization Act of 2026 — Final passage (78-19)',status:'passed',y:78,n:19,p:3,tags:['Space Force','SASC'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Jul 1 · 2:14 PM'},
+  {title:'DoD Cyber Workforce Authorization — Final passage (81-16)',status:'passed',y:81,n:16,p:3,tags:['SASC','Software'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Jun 30 · 3:20 PM'},
+  {title:'NDAA FY2027 — Cloture on motion to proceed (expected ~Jul 14)',status:'scheduled',y:0,n:0,p:0,tags:['SASC','RDT&E'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Scheduled · ~Jul 14'},
+  {title:'Golden Dome Missile Defense Authorization — Amendment (expected ~Jul 15)',status:'scheduled',y:0,n:0,p:0,tags:['Golden Dome','SASC'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Scheduled · ~Jul 15'},
+];
+
+// Most recent House votes before recess (pre-Jul 4)
+const HOUSE_VOTES=[
+  {title:'Right to Repair Defense Equipment Act — Passage (234-195)',status:'passed',y:234,n:195,p:6,tags:['Right to Repair','HASC'],link:'https://clerk.house.gov/Votes',date:'Jul 2 · 1:15 PM'},
+  {title:'NDAA FY2027 — Rule adoption H.Res. 1142 (219-210)',status:'passed',y:219,n:210,p:6,tags:['HASC','HAC-D'],link:'https://clerk.house.gov/Votes',date:'Jul 1 · 5:00 PM'},
+  {title:'DIU Reauthorization and Reform Act — Passage (287-141)',status:'passed',y:287,n:141,p:7,tags:['DIU','Autonomous'],link:'https://clerk.house.gov/Votes',date:'Jun 30 · 2:30 PM'},
+  {title:'NDAA FY2027 Full Markup — HASC Committee (expected Jul 14-15)',status:'scheduled',y:0,n:0,p:0,tags:['HASC','RDT&E'],link:'https://armedservices.house.gov/hearings',date:'Scheduled · ~Jul 14'},
+  {title:'AFTC Infrastructure Modernization Act — Floor vote (expected ~Jul 16)',status:'scheduled',y:0,n:0,p:0,tags:['AFTC','T&E'],link:'https://clerk.house.gov/Votes',date:'Scheduled · ~Jul 16'},
+];
+
+// No hearings during recess; next scheduled week of Jul 13
+const HEARINGS=[
+  {title:'HASC Full Committee: NDAA FY2027 Markup Day 1',committee:'HASC',tags:['HASC','RDT&E'],status:'upcoming',time:'9:00 AM ET · Jul 14',link:'https://armedservices.house.gov/hearings'},
+  {title:'SASC Strategic Forces: NDAA FY2027 Space Force provisions',committee:'SASC',tags:['Space Force','SASC'],status:'upcoming',time:'TBD · Week of Jul 13',link:'https://www.armed-services.senate.gov/hearings'},
+  {title:'HAC-D: FY2027 RDT&E & MACH-TB appropriations markup',committee:'HAC-D',tags:['RDT&E','MACH-TB'],status:'upcoming',time:'TBD · Week of Jul 13',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
+  {title:'DIU Annual Report — HASC Emerging Threats Subcommittee',committee:'HASC',tags:['DIU','Autonomous'],status:'upcoming',time:'TBD · Week of Jul 20',link:'https://armedservices.house.gov/hearings'},
+  {title:'Right to Repair Defense Equipment — SASC markup (completed)',committee:'SASC',tags:['Right to Repair'],status:'completed',time:'Completed · Jul 1',link:'https://www.armed-services.senate.gov/hearings'},
+  {title:'DIU Reauthorization — HASC Emerging Threats markup (completed)',committee:'HASC',tags:['DIU','Autonomous'],status:'completed',time:'Completed · Jun 30',link:'https://armedservices.house.gov/hearings'},
+];
+const KEY_MEMBERS=[
+  {name:'Mike Rogers',role:'Chairman, HASC',party:'R',link:'https://armedservices.house.gov/about/leadership'},
+  {name:'Adam Smith',role:'Ranking Member, HASC',party:'D',link:'https://armedservices.house.gov/about/leadership'},
+  {name:'Roger Wicker',role:'Chairman, SASC',party:'R',link:'https://www.armed-services.senate.gov/about/leadership'},
+  {name:'Jack Reed',role:'Ranking Member, SASC',party:'D',link:'https://www.armed-services.senate.gov/about/leadership'},
+  {name:'Ken Calvert',role:'Chairman, HAC-D',party:'R',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
+  {name:'Pete Aguilar',role:'Ranking Member, HAC-D',party:'D',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
+  {name:'Susan Collins',role:'Chairman, SAC-D',party:'R',link:'https://appropriations.senate.gov/subcommittees/defense'},
+  {name:'Jon Tester',role:'Ranking Member, SAC-D',party:'D',link:'https://appropriations.senate.gov/subcommittees/defense'},
+];
+
+function renderCongressPage(){
+  // Show recess banner if active
+  const bannerEl = document.getElementById('recessBanner');
+  if(bannerEl){
+    if(RECESS_ACTIVE){
+      bannerEl.style.display='flex';
+    } else {
+      bannerEl.style.display='none';
+    }
+  }
+  document.getElementById('cvS').textContent = RECESS_ACTIVE ? '—' : SENATE_VOTES.filter(v=>['passed','failed','live'].includes(v.status)&&v.date.includes('Today')).length;
+  document.getElementById('cvH').textContent = RECESS_ACTIVE ? '—' : HOUSE_VOTES.filter(v=>['passed','failed','live'].includes(v.status)&&v.date.includes('Today')).length;
+  document.getElementById('cvLive').textContent = RECESS_ACTIVE ? '0' : [...SENATE_VOTES,...HOUSE_VOTES].filter(v=>v.status==='live').length;
+  document.getElementById('cvHear').textContent = RECESS_ACTIVE ? '0' : HEARINGS.filter(h=>h.status==='today').length;
+  document.getElementById('senateVotes').innerHTML=SENATE_VOTES.map(v=>renderVote(v)).join('');
+  document.getElementById('houseVotes').innerHTML=HOUSE_VOTES.map(v=>renderVote(v)).join('');
+  document.getElementById('hearingList').innerHTML=HEARINGS.map(h=>`
+    <div class="hearing-item">
+      <div class="hearing-title"><a href="${h.link}" target="_blank">${esc(h.title)}</a></div>
+      <div class="hearing-meta">
+        <span class="h-comm">${h.committee}</span>
+        <span class="h-time">${h.time}</span>
+        <span class="h-stat ${h.status==='today'?'hs-today':h.status==='upcoming'?'hs-up':'hs-done'}">${h.status==='today'?'TODAY':h.status==='upcoming'?'UPCOMING':'COMPLETED'}</span>
+      </div>
+      <div class="tags">${h.tags.map(t=>`<span class="tag m">${t}</span>`).join('')}</div>
+    </div>`).join('');
+  document.getElementById('memberGrid').innerHTML=KEY_MEMBERS.map(m=>`
+    <div class="member-card">
+      <div class="m-name"><a href="${m.link}" target="_blank" style="color:inherit">${esc(m.name)}</a></div>
+      <div class="m-role">${esc(m.role)}</div>
+      <span class="m-party ${m.party==='R'?'pr':'pd'}">${m.party}</span>
+    </div>`).join('');
+}
+
+function renderVote(v){
+  const total=v.y+v.n+v.p;
+  const pct=total>0?Math.round(v.y/total*100):50;
+  const sc={live:'vs-live',passed:'vs-passed',failed:'vs-failed',pending:'vs-pending',scheduled:'vs-scheduled'}[v.status];
+  const tally=total>0
+    ?`<span class="ty">Y ${v.y}</span><span class="tn">N ${v.n}</span>${v.p?`<span class="tp">P ${v.p}</span>`:''}<div class="vote-bar"><div class="vote-bar-inner" style="width:${pct}%"></div></div>`
+    :`<span class="tp">${v.status==='live'?'Vote open\u2026':'Awaiting vote'}</span>`;
+  return `<div class="vote-item">
+    <div class="vote-title"><a href="${v.link}" target="_blank">${esc(v.title)}</a></div>
+    <div class="vote-meta"><span class="vote-status ${sc}">${v.status.toUpperCase()}</span><div class="vote-tally">${tally}</div><span class="vote-date">${v.date}</span></div>
+    <div class="tags">${v.tags.map(t=>`<span class="tag m">${t}</span>`).join('')}</div>
+  </div>`;
+}
+
+// ── ELECTIONS DATA ────────────────────────────────────────
+const SEN_RACES=[
+  {state:'Georgia',inc:'Jon Ossoff (D)',rating:'toss',r:49,d:48,nom:true,note:'SAC-D seat',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=GA'},
+  {state:'Montana',inc:'Jon Tester (D)',rating:'toss',r:50,d:45,nom:true,note:'SAC-D Ranking',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=MT'},
+  {state:'Nevada',inc:'Jacky Rosen (D)',rating:'toss',r:48,d:47,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=NV'},
+  {state:'Arizona',inc:'Mark Kelly (D)',rating:'toss',r:48,d:48,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=AZ'},
+  {state:'Michigan',inc:'Gary Peters (D)',rating:'lean-d',r:44,d:51,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=MI'},
+  {state:'Pennsylvania',inc:'Bob Casey (D)',rating:'lean-d',r:45,d:50,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=PA'},
+  {state:'Wisconsin',inc:'Tammy Baldwin (D)',rating:'lean-d',r:44,d:51,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=WI'},
+  {state:'Maine',inc:'Susan Collins (R)',rating:'likely-r',r:53,d:42,nom:true,note:'SAC-D Chair',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=ME'},
+  {state:'Florida',inc:'Rick Scott (R)',rating:'likely-r',r:54,d:41,nom:true,note:'SASC member',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=FL'},
+  {state:'Texas',inc:'Ted Cruz (R)',rating:'lean-r',r:51,d:44,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=TX'},
+];
+const HOUSE_DEF=[
+  {name:'Mike Rogers (R)',dist:'AL-3',comm:'HASC Chair',rating:'safe-r',cash:'$2.1M',nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=AL&district=03'},
+  {name:'Adam Smith (D)',dist:'WA-9',comm:'HASC Ranking',rating:'safe-d',cash:'$1.4M',nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=WA&district=09'},
+  {name:'Ken Calvert (R)',dist:'CA-41',comm:'HAC-D Chair',rating:'lean-r',cash:'$3.2M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=CA&district=41'},
+  {name:'Rob Wittman (R)',dist:'VA-1',comm:'HASC Seapower',rating:'lean-r',cash:'$1.8M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=VA&district=01'},
+  {name:'Don Bacon (R)',dist:'NE-2',comm:'HASC',rating:'toss',cash:'$1.6M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=NE&district=02'},
+  {name:'Elaine Luria (D)',dist:'VA-2',comm:'HASC Seapower',rating:'toss',cash:'$2.4M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=VA&district=02'},
+];
+const FEC_DATA=[
+  {name:'Jon Ossoff',party:'D',race:'GA Senate',q1:'$8.2M',coh:'$22.4M',spent:'$4.1M',nom:true,link:'https://www.fec.gov/data/candidate/S0GA00394/'},
+  {name:'Jon Tester',party:'D',race:'MT Senate',q1:'$5.9M',coh:'$14.8M',spent:'$3.2M',nom:true,link:'https://www.fec.gov/data/candidate/S2MT00036/'},
+  {name:'Susan Collins',party:'R',race:'ME Senate',q1:'$4.1M',coh:'$11.2M',spent:'$1.8M',nom:true,link:'https://www.fec.gov/data/candidate/S0ME00133/'},
+  {name:'Mark Kelly',party:'D',race:'AZ Senate',q1:'$7.4M',coh:'$18.6M',spent:'$3.9M',nom:false,link:'https://www.fec.gov/data/candidate/S0AZ00028/'},
+  {name:'Ted Cruz',party:'R',race:'TX Senate',q1:'$9.1M',coh:'$28.4M',spent:'$5.2M',nom:false,link:'https://www.fec.gov/data/candidate/S2TX00312/'},
+  {name:'Ken Calvert',party:'R',race:'CA-41',q1:'$1.4M',coh:'$3.2M',spent:'$0.9M',nom:true,link:'https://www.fec.gov/data/candidate/H2CA42034/'},
+  {name:'Don Bacon',party:'R',race:'NE-2',q1:'$1.2M',coh:'$2.9M',spent:'$0.8M',nom:true,link:'https://www.fec.gov/data/candidate/H6NE02097/'},
+];
+const EL_CAL=[
+  {date:'Jul 15, 2026',event:'FEC Q2 2026 filing deadline',type:'fec',link:'https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/'},
+  {date:'Aug 4, 2026',event:'Michigan, Missouri, Kansas primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
+  {date:'Aug 11, 2026',event:'Connecticut, Minnesota, Wisconsin primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
+  {date:'Sep 1, 2026',event:'Massachusetts, Rhode Island primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
+  {date:'Sep 15, 2026',event:'FEC Q3 2026 filing deadline',type:'fec',link:'https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/'},
+  {date:'Oct 1, 2026',event:'Voter registration deadlines (most states)',type:'admin',link:'https://vote.gov/register/'},
+  {date:'Oct 19, 2026',event:'Early voting begins (most states)',type:'admin',link:'https://vote.gov/'},
+  {date:'Nov 3, 2026',event:'\uD83D\uDDF3 ELECTION DAY \u2014 All polls open',type:'election',link:'https://vote.gov/'},
+  {date:'Dec 31, 2026',event:'FEC Year-end filing deadline',type:'fec',link:'https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/'},
+];
+const rcls={'toss':'rr-toss','lean-r':'rr-lean-r','lean-d':'rr-lean-d','likely-r':'rr-likely-r','likely-d':'rr-likely-d','safe-r':'rr-safe-r','safe-d':'rr-safe-d'};
+const tcols={primary:'#c07aff',fec:'#ffd966',election:'#419B55',admin:'#888',both:'#ffb347'};
+
+function renderElectionsPage(){
+  // Days out
+  const elDay = new Date('2026-11-03');
+  const daysOut = Math.ceil((elDay - NOW) / DAY_MS);
+  document.getElementById('daysOut').textContent = daysOut;
+
+  document.getElementById('senRaces').innerHTML=SEN_RACES.map(r=>{
+    const poll=`<div class="poll-wrap"><div class="poll-mini"><div class="poll-r" style="width:${r.r}%"></div><div class="poll-d" style="width:${r.d}%"></div></div><span class="poll-lbl">R${r.r} D${r.d}</span></div>`;
+    const nom=r.nom?`<span class="nom-flag">&#9873; ${r.note}</span>`:'';
+    return`<tr><td style="font-weight:600"><a href="${r.link}" target="_blank" style="color:inherit">${r.state}</a></td><td style="font-size:11px;color:var(--text-muted)">${r.inc}</td><td><span class="rrating ${rcls[r.rating]}">${r.rating.replace('-',' ').toUpperCase()}</span></td><td>${poll}</td><td>${nom}</td></tr>`;
+  }).join('');
+
+  document.getElementById('houseRaces').innerHTML=HOUSE_DEF.map(r=>{
+    const nom=r.nom?`<span class="nom-flag">&#9873;</span>`:'';
+    return`<tr><td style="font-weight:600"><a href="${r.link}" target="_blank" style="color:inherit">${r.name}</a></td><td style="font-family:var(--font-mono);font-size:10px">${r.dist}</td><td style="font-size:11px;color:var(--green)">${r.comm}</td><td><span class="rrating ${rcls[r.rating]}">${r.rating.replace('-',' ').toUpperCase()}</span></td><td class="money">${r.cash} ${nom}</td></tr>`;
+  }).join('');
+
+  document.getElementById('fecBody').innerHTML=FEC_DATA.map(f=>`
+    <tr><td><span class="pdot pdot-${f.party.toLowerCase()}"></span></td>
+    <td style="font-weight:600"><a href="${f.link}" target="_blank" style="color:inherit">${f.name}</a></td>
+    <td style="color:var(--text-muted);font-size:11px">${f.race}</td>
+    <td class="money big">${f.q1}</td><td class="money">${f.coh}</td>
+    <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${f.spent}</td>
+    <td>${f.nom?'<span class="nom-flag">&#9873;</span>':''}</td></tr>`).join('');
+
+  document.getElementById('elCal').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr>
+      <th style="text-align:left;padding:7px 12px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);">Date</th>
+      <th style="text-align:left;padding:7px 12px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);">Event</th>
+    </tr></thead>
+    <tbody>${EL_CAL.map(e=>`<tr style="${e.type==='election'?'background:var(--tag-bg);':''}">
+      <td style="padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">${e.date}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tcols[e.type]||'#666'};margin-right:8px;vertical-align:middle;"></span>
+        <a href="${e.link}" target="_blank" style="color:inherit">${esc(e.event)}</a>
+      </td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── PAGE NAV ──────────────────────────────────────────────
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='congress')  renderCongressPage();
+  if(id==='elections') renderElectionsPage();
+}
+function showEtab(id,el){
+  document.querySelectorAll('.etab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.etab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('etab-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+function esc(s=''){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── INIT ──────────────────────────────────────────────────
+setInterval(() => loadAllFeeds(true), 30*60*1000); // refresh every 30min to match cache TTL
+loadAllFeeds(false); // try cache first on init
+</script>
+</body>
+</html>
