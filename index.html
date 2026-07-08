@@ -220,7 +220,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
     <div id="sourceStatuses" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     <div class="live-dot"></div>
     <span class="live-label" id="liveLabel">Loading&hellip;</span>
-    <button class="hbtn on" id="filterPriorityBtn" onclick="togglePriorityFilter(this)">&#9873; Priority</button>
+    <button class="hbtn" id="filterPriorityBtn" onclick="togglePriorityFilter(this)">&#9873; Priority</button>
     <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">&#9681;</button>
   </div>
 </header>
@@ -478,7 +478,7 @@ function matchTags(text){const lo=text.toLowerCase();return PRIORITY_TAGS.filter
 
 // ── STATE ─────────────────────────────────────────────────
 let allItems=[];
-let activeSource='all',activeType='all',activeTag=null,priorityOnly=true,searchQ='';
+let activeSource='all',activeType='all',activeTag=null,priorityOnly=false,searchQ='';
 let archView='date',archFolder=null,archFilter='all';
 const DAY_MS=24*60*60*1000;
 const NOW=new Date();  // Live date
@@ -559,46 +559,19 @@ function loadCache() {
   } catch(e) { return null; }
 }
 
-async function fetchAllViaAI() {
-  const today = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
-  const prompt = `Today is ${today}. You are a federal government activity monitor for a defense-tech company called Nominal. Generate a JSON array of 14 recent federal government items across these 7 sources (2 items each): federal-register, congress, white-house, dod, nasa, gao, scotus.
-
-Each item must have:
-- source: one of the 7 source IDs above
-- title: specific and descriptive but concise (include dollar amounts for contracts, bill numbers for legislation, case names for court)
-- url: a DEEP LINK to the actual content page (not a homepage). Use these patterns:
-  federal-register: https://www.federalregister.gov/documents/search?conditions[term]=KEYWORD
-  congress: https://armedservices.house.gov/hearings OR https://www.armed-services.senate.gov/hearings OR https://www.congress.gov/bill/119th-congress/...
-  white-house: https://www.whitehouse.gov/briefing-room/presidential-actions/ OR /statements-releases/
-  dod: https://www.defense.gov/News/Contracts/ OR https://www.diu.mil/latest OR https://www.darpa.mil/news-events/news
-  nasa: https://www.nasa.gov/news-release/ OR https://www.nasa.gov/missions/
-  gao: https://www.gao.gov/products/GAO-26-XXXXXX (realistic report number)
-  scotus: https://www.supremecourt.gov/opinions/slipopinion/25 OR /docket/docketfiles/html/public/
-- summary: exactly 1 short sentence of specific detail
-- publishedAt: ISO date string within the last 48 hours
-- type: rule|hearing|executive|contract|report|decision
-- tags: array of matching Nominal priority keywords from: HASC, SASC, HAC-D, SAC-D, NASA, Air Force, Space Force, Army, Navy, Dept of Energy, Data, T&E, Software, TRMC, MQ-25, Autonomous, DIU, MACH-TB, Golden Dome, Gray Flag, DARPA, NTDC, PACOM, NAVAIR, Right to Repair, AFTC, Test Pilot, RDT&E
-
-Focus on defense, national security, and Nominal's priorities. Return ONLY the compact JSON array, no markdown, no explanation, no extra whitespace.`;
-
-  const response = await fetch("/api/chat", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 3000,
-      messages: [{role: "user", content: prompt}]
-    })
-  });
+// Fetch REAL federal data from the server-side aggregator (/api/feed).
+// Items already carry real URLs, dates, and Nominal keyword tags.
+async function fetchRealFeed() {
+  const response = await fetch("/api/feed");
+  if (!response.ok) throw new Error('feed HTTP ' + response.status);
   const data = await response.json();
-  const text = data.content?.[0]?.text || '[]';
-  const clean = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-  const items = JSON.parse(clean);
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (!items.length) throw new Error('feed returned no items');
 
   return items.map(item => {
     const src = SOURCES.find(s => s.id === item.source) || SOURCES[0];
     const date = new Date(item.publishedAt || new Date().toISOString());
-    const tags = item.tags || matchTags((item.title||'') + ' ' + (item.summary||''));
+    const tags = Array.isArray(item.tags) ? item.tags : matchTags((item.title||'') + ' ' + (item.summary||''));
     return {
       id: Math.random().toString(36).slice(2),
       source: src.id,
@@ -610,9 +583,9 @@ Focus on defense, national security, and Nominal's priorities. Return ONLY the c
       date,
       dateStr: fmtDate(date),
       summary: item.summary || '',
-      tags: Array.isArray(tags) ? tags : [],
-      priority: (Array.isArray(tags) ? tags : []).length > 0,
-      isAI: true,
+      tags,
+      priority: tags.length > 0,
+      isAI: false,
     };
   });
 }
@@ -653,11 +626,11 @@ async function loadAllFeeds(forceRefresh = false){
     updateCounts(); renderHome(); renderArchive();
   }
   document.getElementById('liveLabel').textContent = hadData ? 'Refreshing…' : 'Sample data · fetching live…';
-  document.getElementById('rpStatus').textContent = hadData ? 'Refreshing · calling Anthropic API for live updates…' : 'Showing sample data · calling Anthropic API for live updates…';
+  document.getElementById('rpStatus').textContent = hadData ? 'Refreshing · fetching live federal data…' : 'Showing sample data · fetching live federal data…';
   updateSourceStatuses('loading');
 
   try {
-    const items = await fetchAllViaAI();
+    const items = await fetchRealFeed();
     allItems = items;
     saveCache(allItems);
     SOURCES.forEach(s => {
