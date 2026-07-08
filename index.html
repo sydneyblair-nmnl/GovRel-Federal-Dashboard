@@ -96,6 +96,11 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
 .b-nasa{background:#1a1e2a;color:#6ab4ff;}
 .b-gao{background:#2a2010;color:#ffd966;}
 .b-wh{background:#2a1a1a;color:#ff7a7a;}
+.b-dhs{background:#2a2118;color:#e0a35a;}
+.b-energy{background:#26290f;color:#c3d94a;}
+.b-dot{background:#132530;color:#5ab0d9;}
+.b-ai{background:#22182e;color:#c79cff;}
+.b-sci{background:#0f2a26;color:#4ec3b0;}
 [data-theme="light"] .b-fr{background:#e8edff;color:#3a5adb;}
 [data-theme="light"] .b-cong{background:#f0e8ff;color:#7a3adb;}
 [data-theme="light"] .b-sc{background:#fff4e0;color:#b06800;}
@@ -103,6 +108,11 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
 [data-theme="light"] .b-nasa{background:#e8f0ff;color:#2a4aaf;}
 [data-theme="light"] .b-gao{background:#fff8e0;color:#7a6000;}
 [data-theme="light"] .b-wh{background:#ffe8e8;color:#aa2020;}
+[data-theme="light"] .b-dhs{background:#fbeeda;color:#8a5a1a;}
+[data-theme="light"] .b-energy{background:#eef4d0;color:#5a6a10;}
+[data-theme="light"] .b-dot{background:#e0f0f8;color:#1a5a7a;}
+[data-theme="light"] .b-ai{background:#f2e8ff;color:#6a3aaf;}
+[data-theme="light"] .b-sci{background:#e0f5f0;color:#1a7a68;}
 /* RIGHT PANEL */
 .right-panel{width:230px;min-width:230px;border-left:1px solid var(--border);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:18px;}
 .rp-title{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;}
@@ -244,6 +254,11 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <div class="sb-item" onclick="filterSource('nasa',this,'home')"><span class="sb-dot" style="background:#6ab4ff"></span>NASA<span class="sb-count" id="cnt-nasa">0</span></div>
       <div class="sb-item" onclick="filterSource('gao',this,'home')"><span class="sb-dot" style="background:#ffd966"></span>GAO<span class="sb-count" id="cnt-gao">0</span></div>
       <div class="sb-item" onclick="filterSource('white-house',this,'home')"><span class="sb-dot" style="background:#ff7a7a"></span>White House<span class="sb-count" id="cnt-white-house">0</span></div>
+      <div class="sb-item" onclick="filterSource('homeland',this,'home')"><span class="sb-dot" style="background:#e0a35a"></span>Homeland Sec<span class="sb-count" id="cnt-homeland">0</span></div>
+      <div class="sb-item" onclick="filterSource('energy',this,'home')"><span class="sb-dot" style="background:#c3d94a"></span>Energy<span class="sb-count" id="cnt-energy">0</span></div>
+      <div class="sb-item" onclick="filterSource('transportation',this,'home')"><span class="sb-dot" style="background:#5ab0d9"></span>Transportation<span class="sb-count" id="cnt-transportation">0</span></div>
+      <div class="sb-item" onclick="filterSource('ai',this,'home')"><span class="sb-dot" style="background:#c79cff"></span>AI<span class="sb-count" id="cnt-ai">0</span></div>
+      <div class="sb-item" onclick="filterSource('science',this,'home')"><span class="sb-dot" style="background:#4ec3b0"></span>Science / Tech<span class="sb-count" id="cnt-science">0</span></div>
     </div>
     <div class="sb-section">
       <div class="sb-label">Priority Tags</div>
@@ -258,7 +273,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <div class="sdiv"></div>
       <div class="stat"><span class="stat-n" id="statArchived">0</span>&nbsp;archived</div>
       <div class="sdiv"></div>
-      <div class="stat"><span class="stat-n">7</span>&nbsp;sources</div>
+      <div class="stat"><span class="stat-n">12</span>&nbsp;sources</div>
     </div>
     <div class="filter-bar">
       <span class="fl">Type:</span>
@@ -493,6 +508,11 @@ const SOURCES=[
   {id:'nasa',label:'NASA',bc:'b-nasa',type:'report'},
   {id:'gao',label:'GAO',bc:'b-gao',type:'report'},
   {id:'scotus',label:'SCOTUS',bc:'b-sc',type:'decision'},
+  {id:'homeland',label:'HOMELAND',bc:'b-dhs',type:'rule'},
+  {id:'energy',label:'ENERGY',bc:'b-energy',type:'rule'},
+  {id:'transportation',label:'TRANSPORT',bc:'b-dot',type:'rule'},
+  {id:'ai',label:'AI',bc:'b-ai',type:'rule'},
+  {id:'science',label:'SCI/TECH',bc:'b-sci',type:'rule'},
 ];
 
 // ── CURATED SAMPLE DATA (instant first paint) ────────────

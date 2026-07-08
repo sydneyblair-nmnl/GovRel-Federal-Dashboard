@@ -51,13 +51,22 @@ const DEFENSE_TERMS = [
   'guardian','battalion','brigade','deterrence','homeland','sof ','special operations',
 ];
 
-// Strict defense terms for committee press releases (excludes generic
-// "appropriations/procurement" that appear on every committee item regardless of topic).
-const STRONG_DEFENSE_TERMS = [
-  'defense','defence','military','army','navy','air force','space force','marine','pentagon',
-  'dod','department of war','ndaa','armed services','weapon','missile','hypersonic','nuclear',
-  'warfare','combat','warfighter','shipbuilding','submarine','fighter','munition','darpa',
-  'defense bill','national security','servicemember','troop','deterrence',
+// Broad tracked-domain terms: defense PLUS the civilian areas the dashboard
+// also tracks (homeland, energy, transportation, AI, science/tech). Used to keep
+// general-purpose sources (GAO, committee press) on-topic. Priority flagging still
+// comes only from NOMINAL_TAGS — matching these does NOT star an item.
+const RELEVANT_TERMS = [
+  ...DEFENSE_TERMS,
+  // homeland
+  'homeland','dhs','border','customs','immigration','cbp','tsa','fema','coast guard','cisa','infrastructure security',
+  // energy
+  'energy','grid','electric','power plant','renewable','oil','natural gas','pipeline','reactor','doe',
+  // transportation
+  'transportation','faa','aviation','airport','highway','railway','rail ','transit','vehicle','maritime','port authority','dot',
+  // AI
+  'artificial intelligence','machine learning','algorithm','automation','large language model',' ai ',
+  // science / tech
+  'science','technology','research','nsf','nist','quantum','semiconductor','biotech','innovation','spectrum','5g','6g','chips act','r&d',
 ];
 
 function matchTags(text) {
@@ -68,9 +77,9 @@ function isDefenseRelevant(text) {
   const lo = (text || '').toLowerCase();
   return DEFENSE_TERMS.some(k => lo.includes(k));
 }
-function isStrongDefense(text) {
+function isTrackedRelevant(text) {
   const lo = (text || '').toLowerCase();
-  return STRONG_DEFENSE_TERMS.some(k => lo.includes(k));
+  return RELEVANT_TERMS.some(k => lo.includes(k));
 }
 
 function stripHtml(s) {
@@ -143,6 +152,38 @@ async function getWhiteHouse() {
     mk('white-house','WHITE HOUSE','executive', x.title, x.html_url, x.abstract||x.title, iso(x.publication_date + 'T12:00:00Z')));
 }
 
+// ── Federal Register by agency (civilian tracked domains) ────
+async function frByAgencies({ agencies, source, label, perPage = 4 }) {
+  const qs = new URLSearchParams({ per_page: String(perPage), order: 'newest' });
+  ['title','abstract','html_url','publication_date','type'].forEach(f => qs.append('fields[]', f));
+  agencies.forEach(a => qs.append('conditions[agencies][]', a));
+  const r = await fetchWithTimeout('https://www.federalregister.gov/api/v1/documents.json?' + qs.toString());
+  const d = await r.json();
+  const tmap = { 'Rule':'rule','Proposed Rule':'rule','Notice':'rule','Presidential Document':'executive' };
+  return (d.results || []).map(x =>
+    mk(source, label, tmap[x.type] || 'rule', x.title, x.html_url, x.abstract || x.title, iso(x.publication_date + 'T12:00:00Z')));
+}
+const getHomeland       = () => frByAgencies({ agencies:['homeland-security-department'], source:'homeland', label:'HOMELAND', perPage:4 });
+const getEnergy         = () => frByAgencies({ agencies:['energy-department','federal-energy-regulatory-commission'], source:'energy', label:'ENERGY', perPage:4 });
+const getTransportation = () => frByAgencies({ agencies:['transportation-department','federal-aviation-administration'], source:'transportation', label:'TRANSPORT', perPage:4 });
+const getScience        = () => frByAgencies({ agencies:['national-science-foundation','national-institute-of-standards-and-technology'], source:'science', label:'SCI/TECH', perPage:4 });
+
+// ── AI: Federal Register full-text "artificial intelligence" ─
+// FR term search matches full text, so post-filter to items whose title/abstract
+// actually concern AI (drops docs that merely mention AI in passing).
+async function getAI() {
+  const qs = new URLSearchParams({ per_page: '10', order: 'newest' });
+  ['title','abstract','html_url','publication_date','type'].forEach(f => qs.append('fields[]', f));
+  qs.append('conditions[term]', 'artificial intelligence');
+  const r = await fetchWithTimeout('https://www.federalregister.gov/api/v1/documents.json?' + qs.toString());
+  const d = await r.json();
+  const aiRe = /artificial intelligence|machine learning|\bA\.?I\.?\b|algorithm|automated decision/i;
+  return (d.results || [])
+    .filter(x => aiRe.test((x.title || '') + ' ' + (x.abstract || '')))
+    .slice(0, 4)
+    .map(x => mk('ai', 'AI', 'rule', x.title, x.html_url, x.abstract || x.title, iso(x.publication_date + 'T12:00:00Z')));
+}
+
 // ── DoD: recent large contract awards via USAspending ────────
 async function getDoDContracts() {
   const fmt = d => d.toISOString().slice(0, 10);
@@ -176,13 +217,14 @@ const getDARPA      = () => rssSource({ url:'https://www.darpa.mil/rss.xml', sou
 const getSpaceForce = () => rssSource({ url:'https://www.spaceforce.mil/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=1060&max=10', source:'dod', label:'SPACE FORCE', type:'report', limit:5, requireDefense:false });
 const getAirForce   = () => rssSource({ url:'https://www.af.mil/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=1&max=10', source:'dod', label:'AIR FORCE', type:'report', limit:4, requireDefense:true });
 
-// ── House Appropriations press releases — defense items only (e.g. defense bill markups) ──
+// ── House Appropriations press releases — tracked domains (defense, homeland,
+//    energy, transportation, science); drops off-topic subcommittees (Labor/HHS/Ag) ──
 async function getHouseApprops() {
   const r = await fetchWithTimeout('https://appropriations.house.gov/rss.xml');
   const xml = await r.text();
   return parseRssItems(xml)
-    .filter(x => x.title && x.link && isStrongDefense(x.title + ' ' + x.description))
-    .slice(0, 5)
+    .filter(x => x.title && x.link && isTrackedRelevant(x.title + ' ' + x.description))
+    .slice(0, 6)
     .map(x => mk('congress', 'HOUSE APPROPS', 'hearing', x.title, x.link, x.description.slice(0, 200), iso(x.pubDate)));
 }
 
@@ -217,8 +259,15 @@ const getNASA = () => rssSource({ url:'https://www.nasa.gov/news-release/feed/',
     return items.filter(i => NASA_KEEP.some(k => (i.title + ' ' + i.summary).toLowerCase().includes(k)));
   });
 
-// ── GAO: reports, filtered to defense relevance ──────────────
-const getGAO = () => rssSource({ url:'https://www.gao.gov/rss/reports.xml', source:'gao', label:'GAO', type:'report', limit:6, requireDefense:true });
+// ── GAO: reports, filtered to tracked domains (defense + civilian) ──
+async function getGAO() {
+  const r = await fetchWithTimeout('https://www.gao.gov/rss/reports.xml');
+  const xml = await r.text();
+  return parseRssItems(xml)
+    .filter(x => x.title && x.link && isTrackedRelevant(x.title + ' ' + x.description))
+    .slice(0, 6)
+    .map(x => mk('gao', 'GAO', 'report', x.title, x.link, x.description.slice(0, 200), iso(x.pubDate)));
+}
 
 // ── SCOTUS: no clean feed — link to the real slip-opinions page
 function getSCOTUS() {
@@ -242,6 +291,11 @@ export default async function handler(req, res) {
     ['congress', getHouseApprops],
     ['nasa', getNASA],
     ['gao', getGAO],
+    ['homeland', getHomeland],
+    ['energy', getEnergy],
+    ['transportation', getTransportation],
+    ['ai', getAI],
+    ['science', getScience],
     ['scotus', async () => getSCOTUS()],
   ];
   const settled = await Promise.allSettled(sources.map(([, fn]) => fn()));
