@@ -251,6 +251,44 @@ async function getCongress() {
   return out.slice(0, 8);
 }
 
+// ── HASC / SASC: recent committee hearings & markups (Congress.gov API) ──
+// Armed Services committees have no RSS; the API lists committee meetings but
+// individual meetings lack stable public pages, so each links to the committee's
+// hearings page (a real, resolving page) while the title reflects the specific event.
+async function getArmedServices() {
+  const key = process.env.CONGRESS_API_KEY;
+  if (!key) return [];
+  const targets = [
+    { chamber: 'house',  code: 'hsas00', label: 'HASC', page: 'https://armedservices.house.gov/hearings' },
+    { chamber: 'senate', code: 'ssas00', label: 'SASC', page: 'https://www.armed-services.senate.gov/hearings' },
+  ];
+  const out = [];
+  for (const t of targets) {
+    try {
+      const listR = await fetchWithTimeout(`https://api.congress.gov/v3/committee-meeting/119/${t.chamber}?limit=6&api_key=${key}`);
+      const list = await listR.json();
+      const meetings = list.committeeMeetings || [];
+      let added = 0;
+      for (const m of meetings) {
+        if (added >= 3 || !m.url) continue;
+        try {
+          const detailUrl = m.url + (m.url.includes('?') ? '&' : '?') + 'api_key=' + key;
+          const dR = await fetchWithTimeout(detailUrl);
+          const d = await dR.json();
+          const cm = d.committeeMeeting || {};
+          const comms = cm.committees || [];
+          const isArmed = comms.some(c => (c.systemCode || '').toLowerCase() === t.code || /armed services/i.test(c.name || ''));
+          if (!isArmed) continue;
+          const title = cm.title || `${t.label} committee meeting`;
+          out.push(mk('congress', t.label, 'hearing', `${t.label}: ${title}`, t.page, title, iso(cm.date || m.updateDate)));
+          added++;
+        } catch (e) { /* skip this meeting */ }
+      }
+    } catch (e) { /* isolate chamber */ }
+  }
+  return out;
+}
+
 // ── NASA: news, filtered to space/defense relevance ──────────
 const getNASA = () => rssSource({ url:'https://www.nasa.gov/news-release/feed/', source:'nasa', label:'NASA', type:'report', limit:4, requireDefense:false })
   .then(items => {
@@ -288,6 +326,7 @@ export default async function handler(req, res) {
     ['dod', getSpaceForce],
     ['dod', getAirForce],
     ['congress', getCongress],
+    ['congress', getArmedServices],
     ['congress', getHouseApprops],
     ['nasa', getNASA],
     ['gao', getGAO],
