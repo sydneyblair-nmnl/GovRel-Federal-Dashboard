@@ -495,6 +495,47 @@ const SOURCES=[
   {id:'scotus',label:'SCOTUS',bc:'b-sc',type:'decision'},
 ];
 
+// ── CURATED SAMPLE DATA (instant first paint) ────────────
+// Shown immediately on load while the live AI fetch runs in the background.
+const SAMPLE_SEED=[
+  {source:'federal-register',hoursAgo:3,title:'DFARS Rule: CMMC 2.0 Certification Deadline for Software Contracts',url:'https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=CMMC',summary:'Final rule requires CMMC Level 2 certification for new DoD software contracts above $10M starting Q4 2026.',type:'rule',tags:['Software','RDT&E']},
+  {source:'federal-register',hoursAgo:14,title:'FAR Clause: Right to Repair Requirements for Defense Equipment',url:'https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=right+to+repair',summary:'New clause requires OEMs to provide repair documentation and parts access to DoD maintainers.',type:'rule',tags:['Right to Repair']},
+  {source:'congress',hoursAgo:5,title:'HASC Schedules Full Committee Markup of NDAA FY2027',url:'https://armedservices.house.gov/hearings',summary:'Markup expected to include Golden Dome missile defense and Space Force RDT&E funding lines.',type:'hearing',tags:['HASC','Golden Dome','Space Force','RDT&E']},
+  {source:'congress',hoursAgo:19,title:"SASC Advances DIU Reauthorization and Reform Act",url:'https://www.armed-services.senate.gov/hearings',summary:"Bill would expand Defense Innovation Unit's rapid prototyping authority for autonomous systems.",type:'hearing',tags:['SASC','DIU','Autonomous']},
+  {source:'white-house',hoursAgo:8,title:'Executive Order on Autonomous Systems Testing Infrastructure',url:'https://www.whitehouse.gov/briefing-room/presidential-actions/',summary:'Directs DoD to expand Gray Flag exercise capacity and MACH-TB hypersonic testbed funding.',type:'executive',tags:['Autonomous','Gray Flag','MACH-TB']},
+  {source:'white-house',hoursAgo:21,title:'Statement on Golden Dome Missile Defense Program Milestone',url:'https://www.whitehouse.gov/briefing-room/statements-releases/',summary:'White House highlights progress on layered homeland missile defense architecture.',type:'executive',tags:['Golden Dome']},
+  {source:'dod',hoursAgo:2,title:'DARPA Awards $42M Contract for Autonomous Test Range Sensors',url:'https://www.darpa.mil/news-events/news',summary:'Contract supports next-gen sensor fusion for unmanned test range operations.',type:'contract',tags:['DARPA','Autonomous','T&E']},
+  {source:'dod',hoursAgo:16,title:'Navy Awards $128M NAVAIR Contract for MQ-25 Stingray Sustainment',url:'https://www.defense.gov/News/Contracts/',summary:'Contract covers fleet sustainment and software upgrades for the carrier-based refueling drone.',type:'contract',tags:['NAVAIR','MQ-25','Navy']},
+  {source:'nasa',hoursAgo:10,title:'NASA Awards Artemis Ground Systems Software Contract',url:'https://www.nasa.gov/news-release/',summary:'Contract modernizes the launch software pipeline with DevSecOps practices.',type:'contract',tags:['NASA','Software']},
+  {source:'nasa',hoursAgo:22,title:'NASA Test Pilot Corps Expands Autonomous Aircraft Evaluation',url:'https://www.nasa.gov/missions/',summary:'New evaluation track focuses on uncrewed aerial systems certification.',type:'report',tags:['Test Pilot','Autonomous']},
+  {source:'gao',hoursAgo:6,title:'GAO Report Flags T&E Infrastructure Gaps in Hypersonic Programs',url:'https://www.gao.gov/reports-testimonies/reports',summary:'Report recommends increased RDT&E investment in test range modernization.',type:'report',tags:['T&E','RDT&E']},
+  {source:'gao',hoursAgo:18,title:'GAO Reviews DoD Data Management Practices Under CDAO',url:'https://www.gao.gov/reports-testimonies/reports',summary:"Report examines data-sharing gaps across the services' acquisition data strategy.",type:'report',tags:['Data']},
+  {source:'scotus',hoursAgo:9,title:'Supreme Court Denies Cert in Defense Contractor Whistleblower Case',url:'https://www.supremecourt.gov/orders/ordersofthecourt',summary:'Denial leaves in place the appellate ruling on False Claims Act liability standard.',type:'decision',tags:[]},
+  {source:'scotus',hoursAgo:20,title:'Supreme Court Hears Argument on Federal Contracting Jurisdiction',url:'https://www.supremecourt.gov/oral_arguments/argument_transcripts',summary:'Case could affect venue rules for bid protest litigation involving defense contracts.',type:'decision',tags:[]},
+];
+
+function buildSampleItems(){
+  return SAMPLE_SEED.map(item=>{
+    const src = SOURCES.find(s=>s.id===item.source) || SOURCES[0];
+    const date = new Date(Date.now() - item.hoursAgo*60*60*1000);
+    return {
+      id: 'sample-'+item.source+'-'+item.hoursAgo,
+      source: src.id,
+      label: src.label,
+      bc: src.bc,
+      type: item.type || src.type,
+      title: item.title,
+      link: item.url || src.directUrl || '#',
+      date,
+      dateStr: fmtDate(date),
+      summary: item.summary || '',
+      tags: item.tags || [],
+      priority: (item.tags||[]).length > 0,
+      isAI: false,
+    };
+  });
+}
+
 // ── CACHE + SINGLE BATCHED API CALL ──────────────────────
 const CACHE_KEY = 'nominal_feed_cache';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
@@ -520,11 +561,11 @@ function loadCache() {
 
 async function fetchAllViaAI() {
   const today = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
-  const prompt = `Today is ${today}. You are a federal government activity monitor for a defense-tech company called Nominal. Generate a JSON array of 28 recent federal government items across these 7 sources (4 items each): federal-register, congress, white-house, dod, nasa, gao, scotus.
+  const prompt = `Today is ${today}. You are a federal government activity monitor for a defense-tech company called Nominal. Generate a JSON array of 14 recent federal government items across these 7 sources (2 items each): federal-register, congress, white-house, dod, nasa, gao, scotus.
 
 Each item must have:
 - source: one of the 7 source IDs above
-- title: specific and descriptive (include dollar amounts for contracts, bill numbers for legislation, case names for court)
+- title: specific and descriptive but concise (include dollar amounts for contracts, bill numbers for legislation, case names for court)
 - url: a DEEP LINK to the actual content page (not a homepage). Use these patterns:
   federal-register: https://www.federalregister.gov/documents/search?conditions[term]=KEYWORD
   congress: https://armedservices.house.gov/hearings OR https://www.armed-services.senate.gov/hearings OR https://www.congress.gov/bill/119th-congress/...
@@ -533,19 +574,19 @@ Each item must have:
   nasa: https://www.nasa.gov/news-release/ OR https://www.nasa.gov/missions/
   gao: https://www.gao.gov/products/GAO-26-XXXXXX (realistic report number)
   scotus: https://www.supremecourt.gov/opinions/slipopinion/25 OR /docket/docketfiles/html/public/
-- summary: 1-2 sentences of specific detail
+- summary: exactly 1 short sentence of specific detail
 - publishedAt: ISO date string within the last 48 hours
 - type: rule|hearing|executive|contract|report|decision
 - tags: array of matching Nominal priority keywords from: HASC, SASC, HAC-D, SAC-D, NASA, Air Force, Space Force, Army, Navy, Dept of Energy, Data, T&E, Software, TRMC, MQ-25, Autonomous, DIU, MACH-TB, Golden Dome, Gray Flag, DARPA, NTDC, PACOM, NAVAIR, Right to Repair, AFTC, Test Pilot, RDT&E
 
-Focus on defense, national security, and Nominal's priorities. Return ONLY the JSON array, no markdown, no explanation.`;
+Focus on defense, national security, and Nominal's priorities. Return ONLY the compact JSON array, no markdown, no explanation, no extra whitespace.`;
 
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 8000,
+      max_tokens: 3000,
       messages: [{role: "user", content: prompt}]
     })
   });
@@ -603,12 +644,17 @@ async function loadAllFeeds(forceRefresh = false){
     }
   }
 
-  // No cache — fetch fresh
-  document.getElementById('liveLabel').textContent = 'Fetching…';
-  document.getElementById('rpStatus').textContent = 'Calling Anthropic API… (one moment)';
-  showSkeletons();
+  // No data on screen yet — show curated sample data instantly, then fetch live data in the background.
+  // If real data is already showing (e.g. a manual force-refresh), leave it up while refreshing quietly.
+  const hadData = allItems.length > 0;
+  if (!hadData) {
+    allItems = buildSampleItems();
+    allItems.sort((a,b) => b.date - a.date);
+    updateCounts(); renderHome(); renderArchive();
+  }
+  document.getElementById('liveLabel').textContent = hadData ? 'Refreshing…' : 'Sample data · fetching live…';
+  document.getElementById('rpStatus').textContent = hadData ? 'Refreshing · calling Anthropic API for live updates…' : 'Showing sample data · calling Anthropic API for live updates…';
   updateSourceStatuses('loading');
-  allItems = [];
 
   try {
     const items = await fetchAllViaAI();
@@ -618,24 +664,18 @@ async function loadAllFeeds(forceRefresh = false){
       const n = allItems.filter(i=>i.source===s.id).length;
       updateSourceStatus(s.id, n > 0 ? 'ok' : 'err', n);
     });
+    allItems.sort((a,b) => b.date - a.date);
+    updateCounts(); renderHome(); renderArchive();
+    const ts = 'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('liveLabel').textContent = ts;
+    document.getElementById('rpStatus').textContent = ts + ' · cached 30min · <a href="#" onclick="loadAllFeeds(true);return false;" style="color:var(--green)">force refresh</a>';
   } catch(e) {
     console.error('Feed fetch failed:', e);
-    document.getElementById('liveLabel').textContent = 'Fetch failed — retry?';
-    SOURCES.forEach(s => updateSourceStatus(s.id, 'err', 0));
+    const fallbackMsg = hadData ? 'Live refresh failed — keeping previous data' : 'Live fetch failed — showing sample data';
+    document.getElementById('liveLabel').textContent = fallbackMsg;
+    document.getElementById('rpStatus').textContent = fallbackMsg + ' · <a href="#" onclick="loadAllFeeds(true);return false;" style="color:var(--green)">retry</a>';
+    SOURCES.forEach(s => updateSourceStatus(s.id, 'err', allItems.filter(i=>i.source===s.id).length));
   }
-
-  allItems.sort((a,b) => b.date - a.date);
-  updateCounts(); renderHome(); renderArchive();
-
-  const ts = 'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('liveLabel').textContent = ts;
-  document.getElementById('rpStatus').textContent = ts + ' · cached 30min · <a href="#" onclick="loadAllFeeds(true);return false;" style="color:var(--green)">force refresh</a>';
-}
-
-function showSkeletons(){
-  document.getElementById('feedArea').innerHTML = [1,2,3,4,5].map(()=>
-    `<div class="skeleton"><div class="sk" style="width:${55+Math.random()*30|0}%"></div><div class="sk" style="width:${65+Math.random()*25|0}%"></div><div class="sk" style="width:${35+Math.random()*20|0}%"></div></div>`
-  ).join('');
 }
 
 function updateSourceStatuses(state){
