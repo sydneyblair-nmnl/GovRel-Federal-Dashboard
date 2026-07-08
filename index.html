@@ -323,7 +323,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <div class="rp-title">Quick Links</div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         <a class="ql" href="https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=defense" target="_blank">&#8599; Federal Register &middot; Defense</a>
-        <a class="ql" href="https://armedservices.house.gov/hearings" target="_blank">&#8599; HASC Hearings</a>
+        <a class="ql" href="https://armedservices.house.gov/committee-activity/hearings" target="_blank">&#8599; HASC Hearings</a>
         <a class="ql" href="https://www.armed-services.senate.gov/hearings" target="_blank">&#8599; SASC Hearings</a>
         <a class="ql" href="https://appropriations.house.gov/subcommittees/defense-116th-congress" target="_blank">&#8599; HAC-D</a>
         <a class="ql" href="https://www.defense.gov/News/Contracts/" target="_blank">&#8599; DoD Contract Awards</a>
@@ -545,7 +545,7 @@ const SOURCES=[
 const SAMPLE_SEED=[
   {source:'federal-register',hoursAgo:3,title:'DFARS Rule: CMMC 2.0 Certification Deadline for Software Contracts',url:'https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=CMMC',summary:'Final rule requires CMMC Level 2 certification for new DoD software contracts above $10M starting Q4 2026.',type:'rule',tags:['Software','RDT&E']},
   {source:'federal-register',hoursAgo:14,title:'FAR Clause: Right to Repair Requirements for Defense Equipment',url:'https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=right+to+repair',summary:'New clause requires OEMs to provide repair documentation and parts access to DoD maintainers.',type:'rule',tags:['Right to Repair']},
-  {source:'congress',hoursAgo:5,title:'HASC Schedules Full Committee Markup of NDAA FY2027',url:'https://armedservices.house.gov/hearings',summary:'Markup expected to include Golden Dome missile defense and Space Force RDT&E funding lines.',type:'hearing',tags:['HASC','Golden Dome','Space Force','RDT&E']},
+  {source:'congress',hoursAgo:5,title:'HASC Schedules Full Committee Markup of NDAA FY2027',url:'https://armedservices.house.gov/committee-activity/hearings',summary:'Markup expected to include Golden Dome missile defense and Space Force RDT&E funding lines.',type:'hearing',tags:['HASC','Golden Dome','Space Force','RDT&E']},
   {source:'congress',hoursAgo:19,title:"SASC Advances DIU Reauthorization and Reform Act",url:'https://www.armed-services.senate.gov/hearings',summary:"Bill would expand Defense Innovation Unit's rapid prototyping authority for autonomous systems.",type:'hearing',tags:['SASC','DIU','Autonomous']},
   {source:'white-house',hoursAgo:8,title:'Executive Order on Autonomous Systems Testing Infrastructure',url:'https://www.whitehouse.gov/briefing-room/presidential-actions/',summary:'Directs DoD to expand Gray Flag exercise capacity and MACH-TB hypersonic testbed funding.',type:'executive',tags:['Autonomous','Gray Flag','MACH-TB']},
   {source:'white-house',hoursAgo:21,title:'Statement on Golden Dome Missile Defense Program Milestone',url:'https://www.whitehouse.gov/briefing-room/statements-releases/',summary:'White House highlights progress on layered homeland missile defense architecture.',type:'executive',tags:['Golden Dome']},
@@ -916,24 +916,24 @@ const HOUSE_VOTES=[
   {title:'Right to Repair Defense Equipment Act — Passage (234-195)',status:'passed',y:234,n:195,p:6,tags:['Right to Repair','HASC'],link:'https://clerk.house.gov/Votes',date:'Jul 2 · 1:15 PM'},
   {title:'NDAA FY2027 — Rule adoption H.Res. 1142 (219-210)',status:'passed',y:219,n:210,p:6,tags:['HASC','HAC-D'],link:'https://clerk.house.gov/Votes',date:'Jul 1 · 5:00 PM'},
   {title:'DIU Reauthorization and Reform Act — Passage (287-141)',status:'passed',y:287,n:141,p:7,tags:['DIU','Autonomous'],link:'https://clerk.house.gov/Votes',date:'Jun 30 · 2:30 PM'},
-  {title:'NDAA FY2027 Full Markup — HASC Committee (expected Jul 14-15)',status:'scheduled',y:0,n:0,p:0,tags:['HASC','RDT&E'],link:'https://armedservices.house.gov/hearings',date:'Scheduled · ~Jul 14'},
+  {title:'NDAA FY2027 Full Markup — HASC Committee (expected Jul 14-15)',status:'scheduled',y:0,n:0,p:0,tags:['HASC','RDT&E'],link:'https://armedservices.house.gov/committee-activity/hearings',date:'Scheduled · ~Jul 14'},
   {title:'AFTC Infrastructure Modernization Act — Floor vote (expected ~Jul 16)',status:'scheduled',y:0,n:0,p:0,tags:['AFTC','T&E'],link:'https://clerk.house.gov/Votes',date:'Scheduled · ~Jul 16'},
 ];
 
 // No hearings during recess; next scheduled week of Jul 13
 const HEARINGS=[
-  {title:'HASC Full Committee: NDAA FY2027 Markup Day 1',committee:'HASC',tags:['HASC','RDT&E'],status:'upcoming',time:'9:00 AM ET · Jul 14',link:'https://armedservices.house.gov/hearings'},
+  {title:'HASC Full Committee: NDAA FY2027 Markup Day 1',committee:'HASC',tags:['HASC','RDT&E'],status:'upcoming',time:'9:00 AM ET · Jul 14',link:'https://armedservices.house.gov/committee-activity/hearings'},
   {title:'SASC Strategic Forces: NDAA FY2027 Space Force provisions',committee:'SASC',tags:['Space Force','SASC'],status:'upcoming',time:'TBD · Week of Jul 13',link:'https://www.armed-services.senate.gov/hearings'},
   {title:'HAC-D: FY2027 RDT&E & MACH-TB appropriations markup',committee:'HAC-D',tags:['RDT&E','MACH-TB'],status:'upcoming',time:'TBD · Week of Jul 13',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
-  {title:'DIU Annual Report — HASC Emerging Threats Subcommittee',committee:'HASC',tags:['DIU','Autonomous'],status:'upcoming',time:'TBD · Week of Jul 20',link:'https://armedservices.house.gov/hearings'},
+  {title:'DIU Annual Report — HASC Emerging Threats Subcommittee',committee:'HASC',tags:['DIU','Autonomous'],status:'upcoming',time:'TBD · Week of Jul 20',link:'https://armedservices.house.gov/committee-activity/hearings'},
   {title:'Right to Repair Defense Equipment — SASC markup (completed)',committee:'SASC',tags:['Right to Repair'],status:'completed',time:'Completed · Jul 1',link:'https://www.armed-services.senate.gov/hearings'},
-  {title:'DIU Reauthorization — HASC Emerging Threats markup (completed)',committee:'HASC',tags:['DIU','Autonomous'],status:'completed',time:'Completed · Jun 30',link:'https://armedservices.house.gov/hearings'},
+  {title:'DIU Reauthorization — HASC Emerging Threats markup (completed)',committee:'HASC',tags:['DIU','Autonomous'],status:'completed',time:'Completed · Jun 30',link:'https://armedservices.house.gov/committee-activity/hearings'},
 ];
 const KEY_MEMBERS=[
-  {name:'Mike Rogers',role:'Chairman, HASC',party:'R',link:'https://armedservices.house.gov/about/leadership'},
-  {name:'Adam Smith',role:'Ranking Member, HASC',party:'D',link:'https://armedservices.house.gov/about/leadership'},
-  {name:'Roger Wicker',role:'Chairman, SASC',party:'R',link:'https://www.armed-services.senate.gov/about/leadership'},
-  {name:'Jack Reed',role:'Ranking Member, SASC',party:'D',link:'https://www.armed-services.senate.gov/about/leadership'},
+  {name:'Mike Rogers',role:'Chairman, HASC',party:'R',link:'https://armedservices.house.gov/about'},
+  {name:'Adam Smith',role:'Ranking Member, HASC',party:'D',link:'https://armedservices.house.gov/about'},
+  {name:'Roger Wicker',role:'Chairman, SASC',party:'R',link:'https://www.armed-services.senate.gov/about'},
+  {name:'Jack Reed',role:'Ranking Member, SASC',party:'D',link:'https://www.armed-services.senate.gov/about'},
   {name:'Ken Calvert',role:'Chairman, HAC-D',party:'R',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
   {name:'Pete Aguilar',role:'Ranking Member, HAC-D',party:'D',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
   {name:'Susan Collins',role:'Chairman, SAC-D',party:'R',link:'https://appropriations.senate.gov/subcommittees/defense'},
