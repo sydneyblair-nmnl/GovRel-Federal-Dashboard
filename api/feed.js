@@ -251,42 +251,67 @@ async function getCongress() {
   return out.slice(0, 8);
 }
 
-// ── HASC / SASC: recent committee hearings & markups (Congress.gov API) ──
-// Armed Services committees have no RSS; the API lists committee meetings but
-// individual meetings lack stable public pages, so each links to the committee's
-// hearings page (a real, resolving page) while the title reflects the specific event.
-async function getArmedServices() {
+// ── Committee hearings & markups (Congress.gov API) ──────────
+// These committees have no usable press-release RSS, so we surface their recent
+// hearings/markups from the committee-meeting API. Individual meetings lack stable
+// public pages, so each links to the committee's hearings page. HASC/SASC stay
+// priority-eligible (defense); the civilian committees are forced non-priority.
+const HEARING_COMMITTEES = {
+  house: [
+    { code:'hsas00', label:'HASC',       page:'https://armedservices.house.gov/committee-activity/hearings', priority:true },
+    { code:'hsif00', label:'E&C',        page:'https://energycommerce.house.gov/news', priority:false },
+    { code:'hssy00', label:'HOUSE SS&T', page:'https://science.house.gov/hearings', priority:false },
+  ],
+  senate: [
+    { code:'ssas00', label:'SASC',        page:'https://www.armed-services.senate.gov/hearings', priority:true },
+    { code:'sscm00', label:'SEN COMMERCE',page:'https://www.commerce.senate.gov/hearings', priority:false },
+    { code:'ssga00', label:'HSGAC',       page:'https://www.hsgac.senate.gov/hearings', priority:false },
+  ],
+};
+async function getCommitteeHearings() {
   const key = process.env.CONGRESS_API_KEY;
   if (!key) return [];
-  const targets = [
-    { chamber: 'house',  code: 'hsas00', label: 'HASC', page: 'https://armedservices.house.gov/committee-activity/hearings' },
-    { chamber: 'senate', code: 'ssas00', label: 'SASC', page: 'https://www.armed-services.senate.gov/hearings' },
-  ];
   const out = [];
-  for (const t of targets) {
+  const PER_COMMITTEE = 2, MAX_DETAIL = 12;
+  for (const chamber of ['house', 'senate']) {
+    const configs = HEARING_COMMITTEES[chamber];
+    const counts = {};
     try {
-      const listR = await fetchWithTimeout(`https://api.congress.gov/v3/committee-meeting/119/${t.chamber}?limit=6&api_key=${key}`);
+      const listR = await fetchWithTimeout(`https://api.congress.gov/v3/committee-meeting/119/${chamber}?limit=20&api_key=${key}`);
       const list = await listR.json();
       const meetings = list.committeeMeetings || [];
-      let added = 0;
+      let checked = 0;
       for (const m of meetings) {
-        if (added >= 3 || !m.url) continue;
+        if (checked >= MAX_DETAIL || !m.url) continue;
+        checked++;
         try {
-          const detailUrl = m.url + (m.url.includes('?') ? '&' : '?') + 'api_key=' + key;
-          const dR = await fetchWithTimeout(detailUrl);
+          const dR = await fetchWithTimeout(m.url + (m.url.includes('?') ? '&' : '?') + 'api_key=' + key);
           const d = await dR.json();
           const cm = d.committeeMeeting || {};
-          const comms = cm.committees || [];
-          const isArmed = comms.some(c => (c.systemCode || '').toLowerCase() === t.code || /armed services/i.test(c.name || ''));
-          if (!isArmed) continue;
-          const title = cm.title || `${t.label} committee meeting`;
-          out.push(mk('congress', t.label, 'hearing', `${t.label}: ${title}`, t.page, title, iso(cm.date || m.updateDate)));
-          added++;
-        } catch (e) { /* skip this meeting */ }
+          const codes = (cm.committees || []).map(c => (c.systemCode || '').toLowerCase());
+          const cfg = configs.find(c => codes.includes(c.code));
+          if (!cfg || (counts[cfg.code] || 0) >= PER_COMMITTEE) continue;
+          const title = cm.title || `${cfg.label} committee meeting`;
+          const it = mk('congress', cfg.label, 'hearing', `${cfg.label}: ${title}`, cfg.page, title, iso(cm.date || m.updateDate));
+          if (!cfg.priority) it.tags = []; // civilian committees: never priority-flagged
+          out.push(it);
+          counts[cfg.code] = (counts[cfg.code] || 0) + 1;
+        } catch (e) { /* skip meeting */ }
       }
     } catch (e) { /* isolate chamber */ }
   }
   return out;
+}
+
+// ── House Homeland Security Committee press releases (real RSS) ──
+async function getHouseHomeland() {
+  const r = await fetchWithTimeout('https://homeland.house.gov/rss');
+  const xml = await r.text();
+  return parseRssItems(xml).filter(x => x.title && x.link).slice(0, 5).map(x => {
+    const it = mk('congress', 'HOUSE HOMELAND', 'hearing', x.title, x.link, x.description.slice(0, 200), iso(x.pubDate));
+    it.tags = []; // non-priority
+    return it;
+  });
 }
 
 // ── NASA: news, filtered to space/defense relevance ──────────
@@ -326,7 +351,8 @@ export default async function handler(req, res) {
     ['dod', getSpaceForce],
     ['dod', getAirForce],
     ['congress', getCongress],
-    ['congress', getArmedServices],
+    ['congress', getCommitteeHearings],
+    ['congress', getHouseHomeland],
     ['congress', getHouseApprops],
     ['nasa', getNASA],
     ['gao', getGAO],
