@@ -438,40 +438,40 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
   <div class="elections-page">
     <div class="el-header">
       <h2>2026 Midterm Elections</h2>
-      <p>Senate &amp; House races, polling, FEC fundraising &mdash; defense committee seats flagged</p>
+      <p>Every House &amp; Senate race with live FEC fundraising &mdash; filter by footprint, committee, or flagged members</p>
     </div>
     <div class="el-grid">
-      <div class="ecard"><div class="ecard-lbl">Senate seats up</div><div class="ecard-val">34</div><div class="ecard-sub">incl. 3 special elections</div></div>
-      <div class="ecard"><div class="ecard-lbl">Toss-up races</div><div class="ecard-val g">8</div><div class="ecard-sub">Senate + House combined</div></div>
-      <div class="ecard"><div class="ecard-lbl">Nominal-flagged seats</div><div class="ecard-val g">12</div><div class="ecard-sub">HASC &middot; SASC &middot; HAC-D &middot; SAC-D</div></div>
-      <div class="ecard"><div class="ecard-lbl">Current Senate</div><div class="ecard-val" style="font-size:16px"><span style="color:#ff7a7a">53R</span> &middot; <span style="color:#6ab4ff">47D</span></div><div class="ecard-sub">119th Congress</div></div>
-      <div class="ecard"><div class="ecard-lbl">Current House</div><div class="ecard-val" style="font-size:16px"><span style="color:#ff7a7a">220R</span> &middot; <span style="color:#6ab4ff">215D</span></div><div class="ecard-sub">119th Congress</div></div>
-      <div class="ecard"><div class="ecard-lbl">Election Day</div><div class="ecard-val" style="font-size:17px">Nov 3</div><div class="ecard-sub">2026 &middot; <span id="daysOut">—</span> days out</div></div>
+      <div class="ecard"><div class="ecard-lbl">House races</div><div class="ecard-val" id="kHouse">&mdash;</div><div class="ecard-sub">all seats up in 2026</div></div>
+      <div class="ecard"><div class="ecard-lbl">Senate races</div><div class="ecard-val" id="kSenate">&mdash;</div><div class="ecard-sub">Class 2 seats</div></div>
+      <div class="ecard"><div class="ecard-lbl">Nominal-flagged</div><div class="ecard-val g" id="kFlagged">&mdash;</div><div class="ecard-sub">footprint + flagged members</div></div>
+      <div class="ecard"><div class="ecard-lbl">Footprint seats</div><div class="ecard-val g" id="kFoot">&mdash;</div><div class="ecard-sub">NY CA TN TX VA WA</div></div>
+      <div class="ecard"><div class="ecard-lbl">Committee members up</div><div class="ecard-val" id="kComm">&mdash;</div><div class="ecard-sub">HASC &middot; SASC &middot; HAC-D &middot; SAC-D</div></div>
+      <div class="ecard"><div class="ecard-lbl">Election Day</div><div class="ecard-val" style="font-size:17px">Nov 3</div><div class="ecard-sub">2026 &middot; <span id="daysOut">&mdash;</span> days out</div></div>
     </div>
     <div class="etabs">
       <div class="etab active" onclick="showEtab('senate',this)">Senate Races</div>
-      <div class="etab" onclick="showEtab('house',this)">House &middot; Defense Seats</div>
-      <div class="etab" onclick="showEtab('fec',this)">FEC Fundraising</div>
+      <div class="etab" onclick="showEtab('house',this)">House Races</div>
       <div class="etab" onclick="showEtab('cal',this)">Key Dates</div>
     </div>
+    <div class="filter-bar" id="elFilterBar">
+      <span class="fl">Filter:</span>
+      <button class="hbtn on" onclick="setElFilter('all',this)">All</button>
+      <button class="hbtn" onclick="setElFilter('footprint',this)">&#9670; Footprint</button>
+      <button class="hbtn" onclick="setElFilter('flagged',this)">&#9873; Flagged</button>
+      <button class="hbtn" onclick="setElFilter('HASC',this)">HASC</button>
+      <button class="hbtn" onclick="setElFilter('SASC',this)">SASC</button>
+      <button class="hbtn" onclick="setElFilter('HAC-D',this)">HAC-D</button>
+      <button class="hbtn" onclick="setElFilter('SAC-D',this)">SAC-D</button>
+    </div>
     <div class="etab-content active" id="etab-senate">
-      <div class="section-title">Competitive Senate Races <span class="badge" style="background:#2a2a10;color:#ffd966">&#9873; = Nominal priority seat</span></div>
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
-        <table class="rtable"><thead><tr><th>State</th><th>Incumbent</th><th>Rating</th><th>Polling</th><th>Nominal</th></tr></thead><tbody id="senRaces"></tbody></table>
+        <table class="rtable"><thead><tr><th>State</th><th>Incumbent</th><th>Party</th><th>Committees</th><th>Raised &rsquo;26</th><th>Cash on Hand</th><th>Flags</th></tr></thead><tbody id="senRaces"></tbody></table>
       </div>
     </div>
     <div class="etab-content" id="etab-house">
-      <div class="section-title">House HASC &amp; HAC-D Members Up in 2026</div>
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
-        <table class="rtable"><thead><tr><th>Member</th><th>District</th><th>Committee</th><th>Rating</th><th>Cash on Hand</th></tr></thead><tbody id="houseRaces"></tbody></table>
+        <table class="rtable"><thead><tr><th>District</th><th>Incumbent</th><th>Party</th><th>Committees</th><th>Raised &rsquo;26</th><th>Cash on Hand</th><th>Flags</th></tr></thead><tbody id="houseRaces"></tbody></table>
       </div>
-    </div>
-    <div class="etab-content" id="etab-fec">
-      <div class="section-title">FEC Fundraising &middot; Q1 2026</div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
-        <table class="rtable"><thead><tr><th></th><th>Candidate</th><th>Race</th><th>Raised Q1</th><th>Cash on Hand</th><th>Spent Q1</th><th>Nominal</th></tr></thead><tbody id="fecBody"></tbody></table>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Source: <a href="https://www.fec.gov/data/candidates/?election_year=2026&office=S&is_active_candidate=true" target="_blank">FEC.gov &#8599;</a></div>
     </div>
     <div class="etab-content" id="etab-cal">
       <div class="section-title">2026 Election Calendar</div>
@@ -988,36 +988,60 @@ function renderVote(v){
   </div>`;
 }
 
-// ── ELECTIONS DATA ────────────────────────────────────────
-const SEN_RACES=[
-  {state:'Georgia',inc:'Jon Ossoff (D)',rating:'toss',r:49,d:48,nom:true,note:'SAC-D seat',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=GA'},
-  {state:'Montana',inc:'Jon Tester (D)',rating:'toss',r:50,d:45,nom:true,note:'SAC-D Ranking',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=MT'},
-  {state:'Nevada',inc:'Jacky Rosen (D)',rating:'toss',r:48,d:47,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=NV'},
-  {state:'Arizona',inc:'Mark Kelly (D)',rating:'toss',r:48,d:48,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=AZ'},
-  {state:'Michigan',inc:'Gary Peters (D)',rating:'lean-d',r:44,d:51,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=MI'},
-  {state:'Pennsylvania',inc:'Bob Casey (D)',rating:'lean-d',r:45,d:50,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=PA'},
-  {state:'Wisconsin',inc:'Tammy Baldwin (D)',rating:'lean-d',r:44,d:51,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=WI'},
-  {state:'Maine',inc:'Susan Collins (R)',rating:'likely-r',r:53,d:42,nom:true,note:'SAC-D Chair',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=ME'},
-  {state:'Florida',inc:'Rick Scott (R)',rating:'likely-r',r:54,d:41,nom:true,note:'SASC member',link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=FL'},
-  {state:'Texas',inc:'Ted Cruz (R)',rating:'lean-r',r:51,d:44,nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=S&state=TX'},
-];
-const HOUSE_DEF=[
-  {name:'Mike Rogers (R)',dist:'AL-3',comm:'HASC Chair',rating:'safe-r',cash:'$2.1M',nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=AL&district=03'},
-  {name:'Adam Smith (D)',dist:'WA-9',comm:'HASC Ranking',rating:'safe-d',cash:'$1.4M',nom:false,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=WA&district=09'},
-  {name:'Ken Calvert (R)',dist:'CA-41',comm:'HAC-D Chair',rating:'lean-r',cash:'$3.2M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=CA&district=41'},
-  {name:'Rob Wittman (R)',dist:'VA-1',comm:'HASC Seapower',rating:'lean-r',cash:'$1.8M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=VA&district=01'},
-  {name:'Don Bacon (R)',dist:'NE-2',comm:'HASC',rating:'toss',cash:'$1.6M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=NE&district=02'},
-  {name:'Elaine Luria (D)',dist:'VA-2',comm:'HASC Seapower',rating:'toss',cash:'$2.4M',nom:true,link:'https://www.fec.gov/data/candidates/?election_year=2026&office=H&state=VA&district=02'},
-];
-const FEC_DATA=[
-  {name:'Jon Ossoff',party:'D',race:'GA Senate',q1:'$8.2M',coh:'$22.4M',spent:'$4.1M',nom:true,link:'https://www.fec.gov/data/candidate/S0GA00394/'},
-  {name:'Jon Tester',party:'D',race:'MT Senate',q1:'$5.9M',coh:'$14.8M',spent:'$3.2M',nom:true,link:'https://www.fec.gov/data/candidate/S2MT00036/'},
-  {name:'Susan Collins',party:'R',race:'ME Senate',q1:'$4.1M',coh:'$11.2M',spent:'$1.8M',nom:true,link:'https://www.fec.gov/data/candidate/S0ME00133/'},
-  {name:'Mark Kelly',party:'D',race:'AZ Senate',q1:'$7.4M',coh:'$18.6M',spent:'$3.9M',nom:false,link:'https://www.fec.gov/data/candidate/S0AZ00028/'},
-  {name:'Ted Cruz',party:'R',race:'TX Senate',q1:'$9.1M',coh:'$28.4M',spent:'$5.2M',nom:false,link:'https://www.fec.gov/data/candidate/S2TX00312/'},
-  {name:'Ken Calvert',party:'R',race:'CA-41',q1:'$1.4M',coh:'$3.2M',spent:'$0.9M',nom:true,link:'https://www.fec.gov/data/candidate/H2CA42034/'},
-  {name:'Don Bacon',party:'R',race:'NE-2',q1:'$1.2M',coh:'$2.9M',spent:'$0.8M',nom:true,link:'https://www.fec.gov/data/candidate/H6NE02097/'},
-];
+// ── ELECTIONS DATA (live 2026 races from /api/elections) ───
+let electionsData=null, elFilter='all', elLoaded=false;
+async function loadElections(){
+  if(elLoaded) return; elLoaded=true;
+  try{ const r=await fetch('/api/elections'); electionsData=await r.json(); }
+  catch(e){ electionsData={house:[],senate:[],error:String(e)}; }
+  renderElKpis(); renderRaces();
+}
+function fmtMoney(n){ n=Number(n); if(!n) return '—'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+n; }
+function elMatch(r){
+  if(elFilter==='all') return true;
+  if(elFilter==='footprint') return r.footprint;
+  if(elFilter==='flagged') return r.flagged;
+  return (r.committees||[]).includes(elFilter);
+}
+function raceRow(r,isSen){
+  const loc=isSen?r.state:`${r.state}-${r.district}`;
+  const fecUrl=isSen
+    ? `https://www.fec.gov/data/elections/senate/${r.state}/2026/`
+    : `https://www.fec.gov/data/elections/house/${r.state}/${String(r.district).padStart(2,'0')}/2026/`;
+  const comms=(r.committees||[]).map(c=>`<span class="tag m">${c}</span>`).join('')||'<span style="color:var(--text-muted)">—</span>';
+  const flags=[r.footprint?'<span class="nom-flag">&#9670; Footprint</span>':'', (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''].filter(Boolean).join(' ');
+  const pc=r.party==='R'?'pdot-r':r.party==='D'?'pdot-d':'';
+  return `<tr>
+    <td style="font-weight:600"><a href="${fecUrl}" target="_blank" style="color:inherit">${esc(loc)}</a></td>
+    <td>${esc(r.incumbent||'')}</td>
+    <td><span class="pdot ${pc}"></span> ${esc(r.party||'')}</td>
+    <td><div class="tags">${comms}</div></td>
+    <td class="money big">${r.fec?fmtMoney(r.fec.receipts):'—'}</td>
+    <td class="money">${r.fec?fmtMoney(r.fec.cash):'—'}</td>
+    <td style="white-space:nowrap">${flags}</td>
+  </tr>`;
+}
+function renderRaces(){
+  if(!electionsData) return;
+  const msg=electionsData.note||electionsData.error||'No matching races';
+  const fill=(id,rows)=>{const el=document.getElementById(id);if(el)el.innerHTML=rows.length?rows.join(''):`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-muted)">${esc(msg)}</td></tr>`;};
+  fill('senRaces',(electionsData.senate||[]).filter(elMatch).map(r=>raceRow(r,true)));
+  fill('houseRaces',(electionsData.house||[]).filter(elMatch).map(r=>raceRow(r,false)));
+}
+function renderElKpis(){
+  const h=electionsData&&electionsData.house||[], s=electionsData&&electionsData.senate||[], all=[...h,...s];
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('kHouse',h.length||'—'); set('kSenate',s.length||'—');
+  set('kFlagged',all.filter(r=>r.flagged).length||'—');
+  set('kFoot',all.filter(r=>r.footprint).length||'—');
+  set('kComm',all.filter(r=>(r.committees||[]).length).length||'—');
+}
+function setElFilter(f,btn){
+  elFilter=f;
+  document.querySelectorAll('#elFilterBar .hbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderRaces();
+}
 const EL_CAL=[
   {date:'Jul 15, 2026',event:'FEC Q2 2026 filing deadline',type:'fec',link:'https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/'},
   {date:'Aug 4, 2026',event:'Michigan, Missouri, Kansas primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
@@ -1033,29 +1057,9 @@ const rcls={'toss':'rr-toss','lean-r':'rr-lean-r','lean-d':'rr-lean-d','likely-r
 const tcols={primary:'#c07aff',fec:'#ffd966',election:'#419B55',admin:'#888',both:'#ffb347'};
 
 function renderElectionsPage(){
-  // Days out
   const elDay = new Date('2026-11-03');
-  const daysOut = Math.ceil((elDay - NOW) / DAY_MS);
-  document.getElementById('daysOut').textContent = daysOut;
-
-  document.getElementById('senRaces').innerHTML=SEN_RACES.map(r=>{
-    const poll=`<div class="poll-wrap"><div class="poll-mini"><div class="poll-r" style="width:${r.r}%"></div><div class="poll-d" style="width:${r.d}%"></div></div><span class="poll-lbl">R${r.r} D${r.d}</span></div>`;
-    const nom=r.nom?`<span class="nom-flag">&#9873; ${r.note}</span>`:'';
-    return`<tr><td style="font-weight:600"><a href="${r.link}" target="_blank" style="color:inherit">${r.state}</a></td><td style="font-size:11px;color:var(--text-muted)">${r.inc}</td><td><span class="rrating ${rcls[r.rating]}">${r.rating.replace('-',' ').toUpperCase()}</span></td><td>${poll}</td><td>${nom}</td></tr>`;
-  }).join('');
-
-  document.getElementById('houseRaces').innerHTML=HOUSE_DEF.map(r=>{
-    const nom=r.nom?`<span class="nom-flag">&#9873;</span>`:'';
-    return`<tr><td style="font-weight:600"><a href="${r.link}" target="_blank" style="color:inherit">${r.name}</a></td><td style="font-family:var(--font-mono);font-size:10px">${r.dist}</td><td style="font-size:11px;color:var(--green)">${r.comm}</td><td><span class="rrating ${rcls[r.rating]}">${r.rating.replace('-',' ').toUpperCase()}</span></td><td class="money">${r.cash} ${nom}</td></tr>`;
-  }).join('');
-
-  document.getElementById('fecBody').innerHTML=FEC_DATA.map(f=>`
-    <tr><td><span class="pdot pdot-${f.party.toLowerCase()}"></span></td>
-    <td style="font-weight:600"><a href="${f.link}" target="_blank" style="color:inherit">${f.name}</a></td>
-    <td style="color:var(--text-muted);font-size:11px">${f.race}</td>
-    <td class="money big">${f.q1}</td><td class="money">${f.coh}</td>
-    <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${f.spent}</td>
-    <td>${f.nom?'<span class="nom-flag">&#9873;</span>':''}</td></tr>`).join('');
+  document.getElementById('daysOut').textContent = Math.ceil((elDay - NOW) / DAY_MS);
+  loadElections(); // fetch + render races (once; cached thereafter)
 
   document.getElementById('elCal').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr>
@@ -1084,6 +1088,8 @@ function showEtab(id,el){
   document.querySelectorAll('.etab').forEach(e=>e.classList.remove('active'));
   document.getElementById('etab-'+id).classList.add('active');
   el.classList.add('active');
+  const fb=document.getElementById('elFilterBar');
+  if(fb) fb.style.display = (id==='cal') ? 'none' : 'flex';
 }
 
 function esc(s=''){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
