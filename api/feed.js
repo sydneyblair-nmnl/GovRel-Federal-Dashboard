@@ -332,6 +332,46 @@ async function getGAO() {
     .map(x => mk('gao', 'GAO', 'report', x.title, x.link, x.description.slice(0, 200), iso(x.pubDate)));
 }
 
+// ── Defense / federal trade press (free RSS; priority-eligible) ──
+const NEWS_FEEDS = [
+  { url: 'https://breakingdefense.com/feed/',    label: 'BREAKING DEF' },
+  { url: 'https://defensescoop.com/feed/',       label: 'DEFENSESCOOP' },
+  { url: 'https://www.defenseone.com/rss/all/',  label: 'DEFENSE ONE' },
+  { url: 'https://spacenews.com/feed/',          label: 'SPACENEWS' },
+  { url: 'https://federalnewsnetwork.com/feed/', label: 'FED NEWS' },
+  { url: 'https://warontherocks.com/feed/',      label: 'WAR ON ROCKS' },
+];
+async function getNews() {
+  const per = await Promise.allSettled(NEWS_FEEDS.map(async f => {
+    const r = await fetchWithTimeout(f.url);
+    const xml = await r.text();
+    return parseRssItems(xml).filter(x => x.title && x.link).slice(0, 4)
+      .map(x => mk('news', f.label, 'report', x.title, x.link, x.description.slice(0, 200), iso(x.pubDate)));
+  }));
+  return per.flatMap(p => p.status === 'fulfilled' ? p.value : []);
+}
+
+// ── GovInfo: committee reports + hearing transcripts (needs free api.data.gov key) ──
+// Note: GovInfo has no CRS collection; committee reports (CRPT) are the closest
+// substantive-analysis equivalent. Filtered to tracked domains.
+async function getGovInfo() {
+  const key = process.env.GOVINFO_API_KEY;
+  if (!key) return [];
+  const start = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const end = new Date().toISOString().slice(0, 10);
+  const cols = [{ code: 'CRPT', label: 'CMTE REPORT', type: 'report' }, { code: 'CHRG', label: 'HEARING DOC', type: 'hearing' }];
+  const out = [];
+  for (const c of cols) {
+    try {
+      const r = await fetchWithTimeout(`https://api.govinfo.gov/published/${start}/${end}?offset=0&pageSize=30&collection=${c.code}&api_key=${key}`);
+      const d = await r.json();
+      (d.packages || []).filter(p => isTrackedRelevant(p.title || '')).slice(0, 4).forEach(p =>
+        out.push(mk('congress', c.label, c.type, p.title, `https://www.govinfo.gov/app/details/${p.packageId}`, p.title, iso(p.dateIssued))));
+    } catch (e) { /* isolate */ }
+  }
+  return out;
+}
+
 // ── SCOTUS: no clean feed — link to the real slip-opinions page
 function getSCOTUS() {
   return [mk('scotus','SCOTUS','decision',
@@ -361,6 +401,8 @@ export default async function handler(req, res) {
     ['transportation', getTransportation],
     ['ai', getAI],
     ['science', getScience],
+    ['news', getNews],
+    ['congress', getGovInfo],
     ['scotus', async () => getSCOTUS()],
   ];
   const settled = await Promise.allSettled(sources.map(([, fn]) => fn()));
