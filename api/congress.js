@@ -47,7 +47,9 @@ async function houseVotes() {
   const idx = await fetchText(`https://clerk.house.gov/evs/${YEAR}/index.asp`);
   const group = Math.max(0, ...(idx.match(/ROLL_(\d+)/g) || ['ROLL_0']).map(s => num(s.slice(5))));
   const groupHtml = await fetchText(`https://clerk.house.gov/evs/${YEAR}/ROLL_${String(group).padStart(3, '0')}.asp`);
-  const rolls = [...new Set((groupHtml.match(/roll(\d{3,4})\.xml/gi) || []).map(s => num(s.replace(/roll|\.xml/gi, ''))))]
+  // The group index links to cgi-bin/vote.asp?...rollnumber=NNN (not rollNNN.xml),
+  // so pull the roll numbers from there, then build the roll XML URL ourselves.
+  const rolls = [...new Set((groupHtml.match(/rollnumber=(\d{1,4})/gi) || []).map(s => num(s.split('=')[1])))]
     .sort((a, b) => b - a).slice(0, 5);
   const out = [];
   for (const roll of rolls) {
