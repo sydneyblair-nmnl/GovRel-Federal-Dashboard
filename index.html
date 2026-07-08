@@ -575,7 +575,7 @@ async function fetchRealFeed() {
     return {
       id: Math.random().toString(36).slice(2),
       source: src.id,
-      label: src.label,
+      label: item.label || src.label,
       bc: src.bc,
       type: item.type || src.type,
       title: item.title || '(No title)',

@@ -1,8 +1,15 @@
 // Aggregates REAL federal data from public sources, server-side (avoids CORS,
-// parses XML here, keeps any API keys off the client). Returns normalized items
+// parses XML here, keeps API keys off the client). Returns normalized items
 // with real, resolving deep links. Each source is isolated so one failure
 // never blanks the feed.
+//
+// Two-tier relevance:
+//  - PRIORITY (starred): item matches Nominal's flagged keyword watchlist (NOMINAL_TAGS).
+//  - BROAD feed: every source is defense-scoped (defense agencies, armed-services /
+//    appropriations committees, defense orgs, DoD contracts). General-purpose sources
+//    (GAO, NASA, DoD news) are filtered to DEFENSE_TERMS so they don't add off-topic noise.
 
+// ── Nominal priority watchlist (drives the ⚑ priority flag & tags) ──
 const NOMINAL_TAGS = [
   {label:"HASC",kw:["house armed services","hasc","armed services committee"]},
   {label:"SASC",kw:["senate armed services","sasc"]},
@@ -10,7 +17,7 @@ const NOMINAL_TAGS = [
   {label:"SAC-D",kw:["senate appropriations defense","sac-d","defense appropriations"]},
   {label:"NASA",kw:["nasa","artemis","lunar","jwst","orion"]},
   {label:"Air Force",kw:["air force","usaf","aftc","afrl"]},
-  {label:"Space Force",kw:["space force","ussf","guardian","spacecom"]},
+  {label:"Space Force",kw:["space force","ussf","guardian","spacecom","space systems command"]},
   {label:"Army",kw:["army","soldier"]},
   {label:"Navy",kw:["navy","naval","navair","navsea","nswc"]},
   {label:"Dept of Energy",kw:["department of energy","nuclear","nnsa","sandia","los alamos"]},
@@ -34,9 +41,36 @@ const NOMINAL_TAGS = [
   {label:"RDT&E",kw:["rdt&e","research development test","research, development, test"]},
 ];
 
+// ── Broad defense-relevance filter (looser than the priority watchlist) ──
+const DEFENSE_TERMS = [
+  'defense','defence','military','army','navy','air force','space force','marine','pentagon',
+  'dod','weapon','missile','hypersonic','nuclear','cyber','autonomous','unmanned','drone',
+  'aircraft','warfare','combat','warfighter','intelligence','satellite','radar','munition',
+  'artillery','naval','aviation','ndaa','armed services','veteran','darpa','diu','national security',
+  'appropriations','procurement','acquisition','shipbuilding','submarine','fighter','squadron',
+  'guardian','battalion','brigade','deterrence','homeland','sof ','special operations',
+];
+
+// Strict defense terms for committee press releases (excludes generic
+// "appropriations/procurement" that appear on every committee item regardless of topic).
+const STRONG_DEFENSE_TERMS = [
+  'defense','defence','military','army','navy','air force','space force','marine','pentagon',
+  'dod','department of war','ndaa','armed services','weapon','missile','hypersonic','nuclear',
+  'warfare','combat','warfighter','shipbuilding','submarine','fighter','munition','darpa',
+  'defense bill','national security','servicemember','troop','deterrence',
+];
+
 function matchTags(text) {
   const lo = (text || '').toLowerCase();
   return NOMINAL_TAGS.filter(t => t.kw.some(k => lo.includes(k))).map(t => t.label);
+}
+function isDefenseRelevant(text) {
+  const lo = (text || '').toLowerCase();
+  return DEFENSE_TERMS.some(k => lo.includes(k));
+}
+function isStrongDefense(text) {
+  const lo = (text || '').toLowerCase();
+  return STRONG_DEFENSE_TERMS.some(k => lo.includes(k));
 }
 
 function stripHtml(s) {
@@ -45,147 +79,152 @@ function stripHtml(s) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/&#160;|&nbsp;/g, ' ')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&#8217;|&#8216;/g, "'").replace(/&#8220;|&#8221;/g, '"')
+    .replace(/&#8217;|&#8216;|&#039;|&apos;/g, "'").replace(/&#8220;|&#8221;|&quot;/g, '"')
     .replace(/&#8211;|&#8212;/g, '-')
     .replace(/\s+/g, ' ')
     .trim();
 }
-
-function tag(el, name) {
+function xtag(el, name) {
   const m = el.match(new RegExp('<' + name + '[^>]*>([\\s\\S]*?)</' + name + '>', 'i'));
   return m ? m[1] : '';
 }
-
 function parseRssItems(xml) {
   return (xml.match(/<item>([\s\S]*?)<\/item>/gi) || []).map(block => ({
-    title: stripHtml(tag(block, 'title')),
-    link: stripHtml(tag(block, 'link')),
-    pubDate: stripHtml(tag(block, 'pubDate')),
-    description: stripHtml(tag(block, 'description')),
+    title: stripHtml(xtag(block, 'title')),
+    link: stripHtml(xtag(block, 'link')),
+    pubDate: stripHtml(xtag(block, 'pubDate')),
+    description: stripHtml(xtag(block, 'description')),
   }));
 }
-
-async function fetchWithTimeout(url, opts = {}, ms = 12000) {
+async function fetchWithTimeout(url, opts = {}, ms = 11000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
     return await fetch(url, { ...opts, signal: ctrl.signal, headers: { 'User-Agent': 'NominalFederalDashboard/1.0', ...(opts.headers || {}) } });
-  } finally {
-    clearTimeout(t);
-  }
+  } finally { clearTimeout(t); }
 }
+// source = sidebar bucket (controls color + filtering); label = badge text shown on the card.
+function mk(source, label, type, title, url, summary, publishedAt) {
+  return { source, label, type, title, url, summary, publishedAt, tags: matchTags(title + ' ' + summary) };
+}
+function iso(d) { return d ? new Date(d).toISOString() : new Date().toISOString(); }
 
-function item(source, label, type, title, url, summary, publishedAt) {
-  const tags = matchTags(title + ' ' + summary);
-  return { source, label, type, title, url, summary, publishedAt, tags };
+// helper: fetch an RSS feed, map to items, optionally require defense relevance
+async function rssSource({ url, source, label, type, limit, requireDefense }) {
+  const r = await fetchWithTimeout(url);
+  const xml = await r.text();
+  let items = parseRssItems(xml).filter(x => x.title && x.link);
+  if (requireDefense) items = items.filter(x => isDefenseRelevant(x.title + ' ' + x.description));
+  return items.slice(0, limit).map(x =>
+    mk(source, label, type, x.title, x.link, x.description.slice(0, 200), iso(x.pubDate)));
 }
 
 // ── Federal Register: documents from defense agencies ────────
 async function getFederalRegister() {
-  const fields = ['title', 'abstract', 'html_url', 'publication_date', 'type', 'document_number'];
-  const qs = new URLSearchParams({ per_page: '8', order: 'newest' });
-  fields.forEach(f => qs.append('fields[]', f));
-  // Filter by defense agencies (guarantees DoD provenance) rather than a loose text search.
-  ['defense-department', 'air-force-department', 'navy-department', 'army-department']
+  const qs = new URLSearchParams({ per_page: '6', order: 'newest' });
+  ['title','abstract','html_url','publication_date','type'].forEach(f => qs.append('fields[]', f));
+  ['defense-department','air-force-department','navy-department','army-department']
     .forEach(a => qs.append('conditions[agencies][]', a));
   const r = await fetchWithTimeout('https://www.federalregister.gov/api/v1/documents.json?' + qs.toString());
   const d = await r.json();
-  const typeMap = { 'Rule': 'rule', 'Proposed Rule': 'rule', 'Notice': 'rule', 'Presidential Document': 'executive' };
+  const tmap = { 'Rule':'rule','Proposed Rule':'rule','Notice':'rule','Presidential Document':'executive' };
   return (d.results || []).map(x =>
-    item('federal-register', 'FED REG', typeMap[x.type] || 'rule',
-      x.title, x.html_url, x.abstract || x.title, x.publication_date + 'T12:00:00Z'));
+    mk('federal-register','FED REG', tmap[x.type]||'rule', x.title, x.html_url, x.abstract||x.title, iso(x.publication_date + 'T12:00:00Z')));
 }
 
 // ── White House: presidential documents (exec orders etc.) ───
 async function getWhiteHouse() {
-  const fields = ['title', 'abstract', 'html_url', 'publication_date', 'type'];
-  const qs = new URLSearchParams({ per_page: '4', order: 'newest' });
-  fields.forEach(f => qs.append('fields[]', f));
+  const qs = new URLSearchParams({ per_page: '3', order: 'newest' });
+  ['title','abstract','html_url','publication_date','type'].forEach(f => qs.append('fields[]', f));
   qs.append('conditions[type][]', 'PRESDOCU');
   const r = await fetchWithTimeout('https://www.federalregister.gov/api/v1/documents.json?' + qs.toString());
   const d = await r.json();
   return (d.results || []).map(x =>
-    item('white-house', 'WHITE HOUSE', 'executive',
-      x.title, x.html_url, x.abstract || x.title, x.publication_date + 'T12:00:00Z'));
+    mk('white-house','WHITE HOUSE','executive', x.title, x.html_url, x.abstract||x.title, iso(x.publication_date + 'T12:00:00Z')));
 }
 
 // ── DoD: recent large contract awards via USAspending ────────
-async function getDoD() {
-  const end = new Date();
-  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+async function getDoDContracts() {
   const fmt = d => d.toISOString().slice(0, 10);
   const body = {
     filters: {
-      award_type_codes: ['A', 'B', 'C', 'D'],
-      agencies: [{ type: 'awarding', tier: 'toptier', name: 'Department of Defense' }],
-      time_period: [{ start_date: fmt(start), end_date: fmt(end) }],
+      award_type_codes: ['A','B','C','D'],
+      agencies: [{ type:'awarding', tier:'toptier', name:'Department of Defense' }],
+      time_period: [{ start_date: fmt(new Date(Date.now() - 30*24*60*60*1000)), end_date: fmt(new Date()) }],
     },
-    fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Description', 'generated_internal_id', 'Start Date'],
-    limit: 8,
-    sort: 'Award Amount',
-    order: 'desc',
+    fields: ['Award ID','Recipient Name','Award Amount','Description','generated_internal_id','Start Date'],
+    limit: 6, sort: 'Award Amount', order: 'desc',
   };
   const r = await fetchWithTimeout('https://api.usaspending.gov/api/v2/search/spending_by_award/', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body),
   });
   const d = await r.json();
   return (d.results || []).map(x => {
-    const amt = x['Award Amount'] ? '$' + Number(x['Award Amount']).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '';
+    const amt = x['Award Amount'] ? '$' + Number(x['Award Amount']).toLocaleString('en-US',{maximumFractionDigits:0}) : '';
     const recip = x['Recipient Name'] || 'Unknown recipient';
-    const desc = (x.Description || '').slice(0, 180);
-    return item('dod', 'DOD', 'contract',
-      `${recip} awarded ${amt} DoD contract`,
+    return mk('dod','DOD CONTRACT','contract',
+      `${recip} — ${amt} DoD contract`,
       'https://www.usaspending.gov/award/' + encodeURIComponent(x.generated_internal_id),
-      desc || `Contract award ${x['Award ID'] || ''} to ${recip}.`,
-      (x['Start Date'] ? x['Start Date'] + 'T12:00:00Z' : new Date().toISOString()));
+      (x.Description || `Contract award ${x['Award ID']||''} to ${recip}.`).slice(0,200),
+      iso(x['Start Date'] ? x['Start Date'] + 'T12:00:00Z' : null));
   });
 }
 
-// ── NASA: latest news releases (RSS) ─────────────────────────
-async function getNASA() {
-  const r = await fetchWithTimeout('https://www.nasa.gov/news-release/feed/');
+// ── DoD / defense-org news feeds (ArticleCS + DARPA RSS) ─────
+const getDoDNews    = () => rssSource({ url:'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=9&Site=945&max=10', source:'dod', label:'DOD NEWS', type:'report', limit:5, requireDefense:false });
+const getDARPA      = () => rssSource({ url:'https://www.darpa.mil/rss.xml', source:'dod', label:'DARPA', type:'report', limit:5, requireDefense:false });
+const getSpaceForce = () => rssSource({ url:'https://www.spaceforce.mil/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=1060&max=10', source:'dod', label:'SPACE FORCE', type:'report', limit:5, requireDefense:false });
+const getAirForce   = () => rssSource({ url:'https://www.af.mil/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=1&max=10', source:'dod', label:'AIR FORCE', type:'report', limit:4, requireDefense:true });
+
+// ── House Appropriations press releases — defense items only (e.g. defense bill markups) ──
+async function getHouseApprops() {
+  const r = await fetchWithTimeout('https://appropriations.house.gov/rss.xml');
   const xml = await r.text();
-  return parseRssItems(xml).slice(0, 6).map(x =>
-    item('nasa', 'NASA', 'report', x.title, x.link, x.description.slice(0, 180),
-      x.pubDate ? new Date(x.pubDate).toISOString() : new Date().toISOString()));
+  return parseRssItems(xml)
+    .filter(x => x.title && x.link && isStrongDefense(x.title + ' ' + x.description))
+    .slice(0, 5)
+    .map(x => mk('congress', 'HOUSE APPROPS', 'hearing', x.title, x.link, x.description.slice(0, 200), iso(x.pubDate)));
 }
 
-// ── GAO: latest reports (RSS) ────────────────────────────────
-async function getGAO() {
-  const r = await fetchWithTimeout('https://www.gao.gov/rss/reports.xml');
-  const xml = await r.text();
-  return parseRssItems(xml).slice(0, 8).map(x =>
-    item('gao', 'GAO', 'report', x.title, x.link, x.description.slice(0, 180),
-      x.pubDate ? new Date(x.pubDate).toISOString() : new Date().toISOString()));
-}
-
-// ── Congress: recent bills + hearings (needs free API key) ───
+// ── Congress: recent bills, filtered to defense relevance (needs free key) ──
 async function getCongress() {
   const key = process.env.CONGRESS_API_KEY;
-  if (!key) return []; // gracefully absent until key is set
-  const billTypeName = { hr: 'house-bill', s: 'senate-bill', hjres: 'house-joint-resolution', sjres: 'senate-joint-resolution', hconres: 'house-concurrent-resolution', sconres: 'senate-concurrent-resolution', hres: 'house-resolution', sres: 'senate-resolution' };
+  if (!key) return [];
+  const billTypeName = { hr:'house-bill', s:'senate-bill', hjres:'house-joint-resolution', sjres:'senate-joint-resolution', hconres:'house-concurrent-resolution', sconres:'senate-concurrent-resolution', hres:'house-resolution', sres:'senate-resolution' };
   const out = [];
   try {
-    const r = await fetchWithTimeout(`https://api.congress.gov/v3/bill?limit=10&sort=updateDate+desc&api_key=${key}`);
+    const r = await fetchWithTimeout(`https://api.congress.gov/v3/bill?limit=40&sort=updateDate+desc&api_key=${key}`);
     const d = await r.json();
     (d.bills || []).forEach(b => {
-      const congress = b.congress;
+      const action = (b.latestAction && b.latestAction.text) ? b.latestAction.text : '';
+      const blob = `${b.title || ''} ${action}`;
+      if (!isDefenseRelevant(blob)) return; // keep only defense-relevant legislation
       const typeName = billTypeName[(b.type || '').toLowerCase()] || (b.type || '').toLowerCase();
-      const url = `https://www.congress.gov/bill/${congress}th-congress/${typeName}/${b.number}`;
-      const summary = (b.latestAction && b.latestAction.text) ? b.latestAction.text : (b.title || '');
-      out.push(item('congress', 'CONGRESS', 'hearing', `${(b.type || '').toUpperCase()} ${b.number}: ${b.title}`, url, summary,
-        (b.latestAction && b.latestAction.actionDate ? b.latestAction.actionDate + 'T12:00:00Z' : new Date().toISOString())));
+      const url = `https://www.congress.gov/bill/${b.congress}th-congress/${typeName}/${b.number}`;
+      out.push(mk('congress','CONGRESS','hearing',
+        `${(b.type || '').toUpperCase()} ${b.number}: ${b.title}`, url, action || b.title,
+        iso(b.latestAction && b.latestAction.actionDate ? b.latestAction.actionDate + 'T12:00:00Z' : null)));
     });
   } catch (e) { /* isolate */ }
-  return out;
+  return out.slice(0, 8);
 }
+
+// ── NASA: news, filtered to space/defense relevance ──────────
+const getNASA = () => rssSource({ url:'https://www.nasa.gov/news-release/feed/', source:'nasa', label:'NASA', type:'report', limit:4, requireDefense:false })
+  .then(items => {
+    // NASA news is broad; keep space/tech/defense-relevant, drop pure earth-science photos
+    const NASA_KEEP = ['space force','national security','defense','satellite','launch','artemis','moon','mars','rocket','orbit','spacecraft','mission','technology','propulsion','contract','award'];
+    return items.filter(i => NASA_KEEP.some(k => (i.title + ' ' + i.summary).toLowerCase().includes(k)));
+  });
+
+// ── GAO: reports, filtered to defense relevance ──────────────
+const getGAO = () => rssSource({ url:'https://www.gao.gov/rss/reports.xml', source:'gao', label:'GAO', type:'report', limit:6, requireDefense:true });
 
 // ── SCOTUS: no clean feed — link to the real slip-opinions page
 function getSCOTUS() {
-  const term = '25'; // October Term 2025
-  return [item('scotus', 'SCOTUS', 'decision',
+  return [mk('scotus','SCOTUS','decision',
     'Supreme Court — latest slip opinions (October Term 2025)',
-    `https://www.supremecourt.gov/opinions/slipopinion/${term}`,
+    'https://www.supremecourt.gov/opinions/slipopinion/25',
     'Official list of the most recent Supreme Court slip opinions. No machine-readable feed exists, so this links to the live opinions page.',
     new Date().toISOString())];
 }
@@ -194,10 +233,15 @@ export default async function handler(req, res) {
   const sources = [
     ['federal-register', getFederalRegister],
     ['white-house', getWhiteHouse],
-    ['dod', getDoD],
+    ['dod', getDoDContracts],
+    ['dod', getDoDNews],
+    ['dod', getDARPA],
+    ['dod', getSpaceForce],
+    ['dod', getAirForce],
+    ['congress', getCongress],
+    ['congress', getHouseApprops],
     ['nasa', getNASA],
     ['gao', getGAO],
-    ['congress', getCongress],
     ['scotus', async () => getSCOTUS()],
   ];
   const settled = await Promise.allSettled(sources.map(([, fn]) => fn()));
@@ -205,14 +249,10 @@ export default async function handler(req, res) {
   const sourceStatus = {};
   settled.forEach((s, i) => {
     const id = sources[i][0];
-    if (s.status === 'fulfilled' && Array.isArray(s.value)) {
-      items.push(...s.value);
-      sourceStatus[id] = s.value.length;
-    } else {
-      sourceStatus[id] = 0;
-    }
+    const n = (s.status === 'fulfilled' && Array.isArray(s.value)) ? s.value.length : 0;
+    if (n) items.push(...s.value);
+    sourceStatus[id] = (sourceStatus[id] || 0) + n;
   });
-  // Short cache at the CDN edge so all users share one upstream fetch per few minutes.
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
   res.status(200).json({ items, sourceStatus, fetchedAt: new Date().toISOString() });
 }
