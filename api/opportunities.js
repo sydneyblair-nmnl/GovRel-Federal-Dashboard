@@ -62,11 +62,13 @@ export default async function handler(req, res) {
   const fmt = d => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
   const to = new Date();
   const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const url = `https://api.sam.gov/opportunities/v2/search?api_key=${encodeURIComponent(key)}&postedFrom=${fmt(from)}&postedTo=${fmt(to)}&limit=500`;
+  const url = `https://api.sam.gov/opportunities/v2/search?api_key=${encodeURIComponent(key)}&postedFrom=${fmt(from)}&postedTo=${fmt(to)}&limit=250`;
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'NominalFederalDashboard/1.0', 'Accept': 'application/json' } });
     if (!r.ok) {
-      res.setHeader('Cache-Control', 's-maxage=300');
+      // SAM.gov rate-limits aggressively (esp. basic-tier keys). Cache the failure for
+      // an hour so we don't retry-hammer and burn the daily quota.
+      res.setHeader('Cache-Control', 's-maxage=3600');
       return res.status(200).json({ items: [], error: 'SAM.gov HTTP ' + r.status });
     }
     const d = await r.json();
@@ -93,10 +95,10 @@ export default async function handler(req, res) {
           tags: matchTags(`${o.title || ''} ${org}`),
         };
       });
-    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400'); // 6h fresh, 24h stale
+    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800'); // 24h fresh, 48h stale
     res.status(200).json({ items, total: raw.length, fetchedAt: new Date().toISOString() });
   } catch (e) {
-    res.setHeader('Cache-Control', 's-maxage=300');
+    res.setHeader('Cache-Control', 's-maxage=3600');
     res.status(200).json({ items: [], error: String(e) });
   }
 }
