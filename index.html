@@ -407,10 +407,10 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
-      <div class="ecard"><div class="ecard-lbl">Senate Returns</div><div class="ecard-val" id="cvS" style="font-size:13px;padding-top:4px;">Jul 14</div><div class="ecard-sub">in recess this week</div></div>
-      <div class="ecard"><div class="ecard-lbl">House Returns</div><div class="ecard-val" id="cvH" style="font-size:13px;padding-top:4px;">Jul 13</div><div class="ecard-sub">in recess this week</div></div>
-      <div class="ecard"><div class="ecard-lbl">Live Votes</div><div class="ecard-val g" id="cvLive" style="font-size:17px">0</div><div class="ecard-sub">chamber in recess</div></div>
-      <div class="ecard"><div class="ecard-lbl">Hearings Today</div><div class="ecard-val" id="cvHear" style="font-size:17px">0</div><div class="ecard-sub">chamber in recess</div></div>
+      <div class="ecard"><div class="ecard-lbl">Recent Senate Votes</div><div class="ecard-val g" id="cvS" style="font-size:17px">&mdash;</div><div class="ecard-sub">latest roll calls</div></div>
+      <div class="ecard"><div class="ecard-lbl">Recent House Votes</div><div class="ecard-val g" id="cvH" style="font-size:17px">&mdash;</div><div class="ecard-sub">latest roll calls</div></div>
+      <div class="ecard"><div class="ecard-lbl">Defense Hearings</div><div class="ecard-val" id="cvLive" style="font-size:17px">&mdash;</div><div class="ecard-sub">HASC·SASC·HAC-D·SAC-D</div></div>
+      <div class="ecard"><div class="ecard-lbl">Key Members</div><div class="ecard-val" id="cvHear" style="font-size:17px">&mdash;</div><div class="ecard-sub">committee leadership</div></div>
     </div>
     <div class="cong-grid">
       <div class="cong-panel">
@@ -902,90 +902,59 @@ document.getElementById('searchInput').addEventListener('input',function(){searc
 const HOUSE_RETURN_DATE = new Date('2026-07-13T00:00:00');
 const RECESS_ACTIVE = new Date() < HOUSE_RETURN_DATE;
 
-// Most recent Senate votes before recess (pre-Jul 4)
-const SENATE_VOTES=[
-  {title:'Right to Repair Defense Equipment Act — Cloture (66-31)',status:'passed',y:66,n:31,p:3,tags:['Right to Repair','SASC'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Jul 1 · 4:45 PM'},
-  {title:'Space Force Authorization Act of 2026 — Final passage (78-19)',status:'passed',y:78,n:19,p:3,tags:['Space Force','SASC'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Jul 1 · 2:14 PM'},
-  {title:'DoD Cyber Workforce Authorization — Final passage (81-16)',status:'passed',y:81,n:16,p:3,tags:['SASC','Software'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Jun 30 · 3:20 PM'},
-  {title:'NDAA FY2027 — Cloture on motion to proceed (expected ~Jul 14)',status:'scheduled',y:0,n:0,p:0,tags:['SASC','RDT&E'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Scheduled · ~Jul 14'},
-  {title:'Golden Dome Missile Defense Authorization — Amendment (expected ~Jul 15)',status:'scheduled',y:0,n:0,p:0,tags:['Golden Dome','SASC'],link:'https://www.senate.gov/legislative/votes_new.htm',date:'Scheduled · ~Jul 15'},
-];
-
-// Most recent House votes before recess (pre-Jul 4)
-const HOUSE_VOTES=[
-  {title:'Right to Repair Defense Equipment Act — Passage (234-195)',status:'passed',y:234,n:195,p:6,tags:['Right to Repair','HASC'],link:'https://clerk.house.gov/Votes',date:'Jul 2 · 1:15 PM'},
-  {title:'NDAA FY2027 — Rule adoption H.Res. 1142 (219-210)',status:'passed',y:219,n:210,p:6,tags:['HASC','HAC-D'],link:'https://clerk.house.gov/Votes',date:'Jul 1 · 5:00 PM'},
-  {title:'DIU Reauthorization and Reform Act — Passage (287-141)',status:'passed',y:287,n:141,p:7,tags:['DIU','Autonomous'],link:'https://clerk.house.gov/Votes',date:'Jun 30 · 2:30 PM'},
-  {title:'NDAA FY2027 Full Markup — HASC Committee (expected Jul 14-15)',status:'scheduled',y:0,n:0,p:0,tags:['HASC','RDT&E'],link:'https://armedservices.house.gov/committee-activity/hearings',date:'Scheduled · ~Jul 14'},
-  {title:'AFTC Infrastructure Modernization Act — Floor vote (expected ~Jul 16)',status:'scheduled',y:0,n:0,p:0,tags:['AFTC','T&E'],link:'https://clerk.house.gov/Votes',date:'Scheduled · ~Jul 16'},
-];
-
-// No hearings during recess; next scheduled week of Jul 13
-const HEARINGS=[
-  {title:'HASC Full Committee: NDAA FY2027 Markup Day 1',committee:'HASC',tags:['HASC','RDT&E'],status:'upcoming',time:'9:00 AM ET · Jul 14',link:'https://armedservices.house.gov/committee-activity/hearings'},
-  {title:'SASC Strategic Forces: NDAA FY2027 Space Force provisions',committee:'SASC',tags:['Space Force','SASC'],status:'upcoming',time:'TBD · Week of Jul 13',link:'https://www.armed-services.senate.gov/hearings'},
-  {title:'HAC-D: FY2027 RDT&E & MACH-TB appropriations markup',committee:'HAC-D',tags:['RDT&E','MACH-TB'],status:'upcoming',time:'TBD · Week of Jul 13',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
-  {title:'DIU Annual Report — HASC Emerging Threats Subcommittee',committee:'HASC',tags:['DIU','Autonomous'],status:'upcoming',time:'TBD · Week of Jul 20',link:'https://armedservices.house.gov/committee-activity/hearings'},
-  {title:'Right to Repair Defense Equipment — SASC markup (completed)',committee:'SASC',tags:['Right to Repair'],status:'completed',time:'Completed · Jul 1',link:'https://www.armed-services.senate.gov/hearings'},
-  {title:'DIU Reauthorization — HASC Emerging Threats markup (completed)',committee:'HASC',tags:['DIU','Autonomous'],status:'completed',time:'Completed · Jun 30',link:'https://armedservices.house.gov/committee-activity/hearings'},
-];
-const KEY_MEMBERS=[
-  {name:'Mike Rogers',role:'Chairman, HASC',party:'R',link:'https://armedservices.house.gov/about'},
-  {name:'Adam Smith',role:'Ranking Member, HASC',party:'D',link:'https://armedservices.house.gov/about'},
-  {name:'Roger Wicker',role:'Chairman, SASC',party:'R',link:'https://www.armed-services.senate.gov/about'},
-  {name:'Jack Reed',role:'Ranking Member, SASC',party:'D',link:'https://www.armed-services.senate.gov/about'},
-  {name:'Ken Calvert',role:'Chairman, HAC-D',party:'R',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
-  {name:'Pete Aguilar',role:'Ranking Member, HAC-D',party:'D',link:'https://appropriations.house.gov/subcommittees/defense-116th-congress'},
-  {name:'Susan Collins',role:'Chairman, SAC-D',party:'R',link:'https://appropriations.senate.gov/subcommittees/defense'},
-  {name:'Jon Tester',role:'Ranking Member, SAC-D',party:'D',link:'https://appropriations.senate.gov/subcommittees/defense'},
-];
-
-function renderCongressPage(){
-  // Show recess banner if active
-  const bannerEl = document.getElementById('recessBanner');
-  if(bannerEl){
-    if(RECESS_ACTIVE){
-      bannerEl.style.display='flex';
-    } else {
-      bannerEl.style.display='none';
-    }
-  }
-  document.getElementById('cvS').textContent = RECESS_ACTIVE ? '—' : SENATE_VOTES.filter(v=>['passed','failed','live'].includes(v.status)&&v.date.includes('Today')).length;
-  document.getElementById('cvH').textContent = RECESS_ACTIVE ? '—' : HOUSE_VOTES.filter(v=>['passed','failed','live'].includes(v.status)&&v.date.includes('Today')).length;
-  document.getElementById('cvLive').textContent = RECESS_ACTIVE ? '0' : [...SENATE_VOTES,...HOUSE_VOTES].filter(v=>v.status==='live').length;
-  document.getElementById('cvHear').textContent = RECESS_ACTIVE ? '0' : HEARINGS.filter(h=>h.status==='today').length;
-  document.getElementById('senateVotes').innerHTML=SENATE_VOTES.map(v=>renderVote(v)).join('');
-  document.getElementById('houseVotes').innerHTML=HOUSE_VOTES.map(v=>renderVote(v)).join('');
-  document.getElementById('hearingList').innerHTML=HEARINGS.map(h=>`
-    <div class="hearing-item">
-      <div class="hearing-title"><a href="${h.link}" target="_blank">${esc(h.title)}</a></div>
-      <div class="hearing-meta">
-        <span class="h-comm">${h.committee}</span>
-        <span class="h-time">${h.time}</span>
-        <span class="h-stat ${h.status==='today'?'hs-today':h.status==='upcoming'?'hs-up':'hs-done'}">${h.status==='today'?'TODAY':h.status==='upcoming'?'UPCOMING':'COMPLETED'}</span>
-      </div>
-      <div class="tags">${h.tags.map(t=>`<span class="tag m">${t}</span>`).join('')}</div>
-    </div>`).join('');
-  document.getElementById('memberGrid').innerHTML=KEY_MEMBERS.map(m=>`
-    <div class="member-card">
-      <div class="m-name"><a href="${m.link}" target="_blank" style="color:inherit">${esc(m.name)}</a></div>
-      <div class="m-role">${esc(m.role)}</div>
-      <span class="m-party ${m.party==='R'?'pr':'pd'}">${m.party}</span>
-    </div>`).join('');
+// ── CONGRESS (live from /api/congress) ─────────────────────
+let congressData=null, congressLoaded=false;
+async function loadCongress(){
+  if(congressLoaded) return; congressLoaded=true;
+  try{ const r=await fetch('/api/congress'); congressData=await r.json(); }
+  catch(e){ congressData={senateVotes:[],houseVotes:[],hearings:[],members:[],error:String(e)}; }
+  renderCongressData();
 }
-
+function voteStatusClass(result){
+  const r=(result||'').toLowerCase();
+  if(/pass|agreed|confirm|invoke|adopt/.test(r)) return 'vs-passed';
+  if(/reject|fail|not|down/.test(r)) return 'vs-failed';
+  return 'vs-pending';
+}
 function renderVote(v){
-  const total=v.y+v.n+v.p;
+  const total=(v.y||0)+(v.n||0);
   const pct=total>0?Math.round(v.y/total*100):50;
-  const sc={live:'vs-live',passed:'vs-passed',failed:'vs-failed',pending:'vs-pending',scheduled:'vs-scheduled'}[v.status];
+  const sc=voteStatusClass(v.result);
   const tally=total>0
-    ?`<span class="ty">Y ${v.y}</span><span class="tn">N ${v.n}</span>${v.p?`<span class="tp">P ${v.p}</span>`:''}<div class="vote-bar"><div class="vote-bar-inner" style="width:${pct}%"></div></div>`
-    :`<span class="tp">${v.status==='live'?'Vote open\u2026':'Awaiting vote'}</span>`;
+    ?`<span class="ty">Y ${v.y}</span><span class="tn">N ${v.n}</span><div class="vote-bar"><div class="vote-bar-inner" style="width:${pct}%"></div></div>`
+    :`<span class="tp">Roll call</span>`;
+  const num=v.number?`#${v.number} · `:'';
   return `<div class="vote-item">
-    <div class="vote-title"><a href="${v.link}" target="_blank">${esc(v.title)}</a></div>
-    <div class="vote-meta"><span class="vote-status ${sc}">${v.status.toUpperCase()}</span><div class="vote-tally">${tally}</div><span class="vote-date">${v.date}</span></div>
-    <div class="tags">${v.tags.map(t=>`<span class="tag m">${t}</span>`).join('')}</div>
+    <div class="vote-title"><a href="${v.url}" target="_blank">${esc(v.title||'')}</a></div>
+    <div class="vote-meta"><span class="vote-status ${sc}">${esc((v.result||'').toUpperCase())}</span><div class="vote-tally">${tally}</div><span class="vote-date">${num}${esc(v.date||'')}</span></div>
+    ${(v.tags&&v.tags.length)?`<div class="tags">${v.tags.map(t=>`<span class="tag m">${esc(t)}</span>`).join('')}</div>`:''}
   </div>`;
+}
+function renderCongressData(){
+  if(!congressData) return;
+  const sv=congressData.senateVotes||[], hv=congressData.houseVotes||[], hr=congressData.hearings||[], km=congressData.members||[];
+  const empty=m=>`<div style="padding:16px;color:var(--text-muted);font-size:12px">${m}</div>`;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  document.getElementById('senateVotes').innerHTML = sv.length?sv.map(renderVote).join(''):empty('No recent Senate roll-call votes.');
+  document.getElementById('houseVotes').innerHTML  = hv.length?hv.map(renderVote).join(''):empty('No recent House roll-call votes.');
+  document.getElementById('hearingList').innerHTML = hr.length?hr.map(h=>`
+    <div class="hearing-item">
+      <div class="hearing-title"><a href="${h.url}" target="_blank">${esc(h.title||'')}</a></div>
+      <div class="hearing-meta"><span class="h-comm">${esc(h.committee||'')}</span><span class="h-time">${esc([h.date,h.time].filter(Boolean).join(' '))}</span></div>
+      ${(h.tags&&h.tags.length)?`<div class="tags">${h.tags.map(t=>`<span class="tag m">${esc(t)}</span>`).join('')}</div>`:''}
+    </div>`).join('') : empty('No upcoming defense-committee hearings on the calendar (Congress may be in recess).');
+  document.getElementById('memberGrid').innerHTML = km.length?km.map(m=>`
+    <div class="member-card">
+      <div class="m-name"><a href="${m.url}" target="_blank" style="color:inherit">${esc(m.name||'')}</a></div>
+      <div class="m-role">${esc(m.role||'')}</div>
+      <span class="m-party ${m.party==='R'?'pr':'pd'}">${esc(m.party||'')}</span>
+    </div>`).join('') : empty('Members unavailable.');
+  set('cvS', sv.length); set('cvH', hv.length); set('cvLive', hr.length); set('cvHear', km.length);
+}
+function renderCongressPage(){
+  const bannerEl=document.getElementById('recessBanner');
+  if(bannerEl) bannerEl.style.display = RECESS_ACTIVE ? 'flex' : 'none';
+  loadCongress();
 }
 
 // ── ELECTIONS DATA (live 2026 races from /api/elections) ───
