@@ -259,7 +259,7 @@ async function getArmedServices() {
   const key = process.env.CONGRESS_API_KEY;
   if (!key) return [];
   const targets = [
-    { chamber: 'house',  code: 'hsas00', label: 'HASC', page: 'https://armedservices.house.gov/hearings' },
+    { chamber: 'house',  code: 'hsas00', label: 'HASC', page: 'https://armedservices.house.gov/committee-activity/hearings' },
     { chamber: 'senate', code: 'ssas00', label: 'SASC', page: 'https://www.armed-services.senate.gov/hearings' },
   ];
   const out = [];
