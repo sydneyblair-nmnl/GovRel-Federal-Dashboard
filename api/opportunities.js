@@ -26,15 +26,24 @@ function matchTags(text) {
   const lo = (text || '').toLowerCase();
   return NOMINAL_TAGS.filter(t => t.kw.some(k => lo.includes(k))).map(t => t.label);
 }
-// Broad defense/tech/science/energy relevance for including an opportunity.
+// Defense-tech relevance for including an opportunity (matched against the TITLE).
 const RELEVANT = [
-  'defense','defence','army','navy','air force','space force','marine','pentagon','dod','department of war',
-  'darpa','diu','missile','hypersonic','radar','aircraft','munition','weapon','warfighter','autonomous',
-  'unmanned','drone','satellite','space','orbital','launch','isr','c4isr','electronic warfare','naval',
-  'nuclear','cyber','artificial intelligence','machine learning','quantum','semiconductor','sensor',
-  'propulsion','directed energy','test and evaluation','rdt&e','research and development','prototype',
+  'missile','hypersonic','radar','aircraft','rotorcraft','avionics','munition','armament','weapon',
+  'warfighter','autonomous','autonomy','unmanned','drone','uas','satellite','space','orbital','launch',
+  'isr','c4isr','surveillance','reconnaissance','electronic warfare','guidance','targeting','navigation',
+  'naval','submarine','shipboard','nuclear','cyber','artificial intelligence','machine learning',
+  'quantum','semiconductor','microelectronic','sensor','propulsion','directed energy','laser',
+  'test and evaluation','rdt&e','research and development','prototype','sbir','sttr','modernization',
+  'simulation','modeling','systems engineering','integration','command and control','tactical','combat',
+  'counter-uas','counter uas','space vehicle','ground system','mission system','software development',
 ];
-const DEF_ORG = /defense|defence|army|navy|air force|space force|marine|darpa|dod|department of war|missile defense/i;
+// Defense-tech / R&D NAICS codes — an opportunity in one of these industries is
+// relevant regardless of title wording.
+const TECH_NAICS = new Set([
+  '541715','541713','541714','541712','541330','541380','541511','541512','541519',
+  '336411','336412','336413','336414','336415','336419','334511','334220','334290',
+  '334413','334516','336611','336612','541690','541990','927110','928110','541360',
+]);
 function relevant(text) {
   const lo = (text || '').toLowerCase();
   return RELEVANT.some(k => lo.includes(k));
@@ -50,7 +59,7 @@ export default async function handler(req, res) {
   const fmt = d => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
   const to = new Date();
   const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const url = `https://api.sam.gov/opportunities/v2/search?api_key=${encodeURIComponent(key)}&postedFrom=${fmt(from)}&postedTo=${fmt(to)}&limit=250`;
+  const url = `https://api.sam.gov/opportunities/v2/search?api_key=${encodeURIComponent(key)}&postedFrom=${fmt(from)}&postedTo=${fmt(to)}&limit=500`;
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'NominalFederalDashboard/1.0', 'Accept': 'application/json' } });
     if (!r.ok) {
@@ -60,10 +69,10 @@ export default async function handler(req, res) {
     const d = await r.json();
     const raw = d.opportunitiesData || [];
     const items = raw
-      .filter(o => {
-        const org = o.fullParentPathName || o.department || o.organizationName || '';
-        return DEF_ORG.test(org) || relevant(`${o.title || ''} ${org}`);
-      })
+      // Require topical defense-tech relevance in the TITLE, or a defense-tech/R&D
+      // NAICS code. (Being posted by a DoD office isn't enough — that lets through
+      // mundane parts/janitorial/scrap solicitations.)
+      .filter(o => relevant(o.title || '') || TECH_NAICS.has(String(o.naicsCode || '')))
       .slice(0, 25)
       .map(o => {
         const org = (o.fullParentPathName || o.department || '').split('.')[0];
