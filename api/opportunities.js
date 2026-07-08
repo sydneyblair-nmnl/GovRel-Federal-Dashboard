@@ -33,16 +33,19 @@ const RELEVANT = [
   'isr','c4isr','surveillance','reconnaissance','electronic warfare','guidance','targeting','navigation',
   'naval','submarine','shipboard','nuclear','cyber','artificial intelligence','machine learning',
   'quantum','semiconductor','microelectronic','sensor','propulsion','directed energy','laser',
-  'test and evaluation','rdt&e','research and development','prototype','sbir','sttr','modernization',
-  'simulation','modeling','systems engineering','integration','command and control','tactical','combat',
-  'counter-uas','counter uas','space vehicle','ground system','mission system','software development',
+  'test and evaluation','rdt&e','research and development','prototype','sbir','sttr',
+  'command and control','tactical','combat','counter-uas','counter uas','space vehicle',
 ];
 // Defense-tech / R&D NAICS codes — an opportunity in one of these industries is
 // relevant regardless of title wording.
+// R&D + core defense systems/electronics/software (deliberately excludes generic
+// parts-manufacturing & ship/vehicle repair codes that surface mundane procurement).
 const TECH_NAICS = new Set([
-  '541715','541713','541714','541712','541330','541380','541511','541512','541519',
-  '336411','336412','336413','336414','336415','336419','334511','334220','334290',
-  '334413','334516','336611','336612','541690','541990','927110','928110','541360',
+  '541713','541714','541715', // R&D (physical/eng/life sciences)
+  '541330','541511','541512','541519', // engineering + custom software/IT
+  '336414','336415', // guided missiles / space vehicles + propulsion
+  '334511','334290','334220', // search/detection/nav/radar; comms/signaling equipment
+  '336411', // aircraft manufacturing
 ]);
 function relevant(text) {
   const lo = (text || '').toLowerCase();
@@ -71,8 +74,8 @@ export default async function handler(req, res) {
     const items = raw
       // Require topical defense-tech relevance in the TITLE, or a defense-tech/R&D
       // NAICS code. (Being posted by a DoD office isn't enough — that lets through
-      // mundane parts/janitorial/scrap solicitations.)
-      .filter(o => relevant(o.title || '') || TECH_NAICS.has(String(o.naicsCode || '')))
+      // mundane parts/janitorial/scrap solicitations.) Skip award notices.
+      .filter(o => !/award/i.test(o.type || '') && (relevant(o.title || '') || TECH_NAICS.has(String(o.naicsCode || ''))))
       .slice(0, 25)
       .map(o => {
         const org = (o.fullParentPathName || o.department || '').split('.')[0];
