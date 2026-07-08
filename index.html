@@ -102,6 +102,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
 .b-ai{background:#22182e;color:#c79cff;}
 .b-sci{background:#0f2a26;color:#4ec3b0;}
 .b-news{background:#2a2523;color:#e8a87c;}
+.b-opp{background:#2a2410;color:#f0c650;}
 [data-theme="light"] .b-fr{background:#e8edff;color:#3a5adb;}
 [data-theme="light"] .b-cong{background:#f0e8ff;color:#7a3adb;}
 [data-theme="light"] .b-sc{background:#fff4e0;color:#b06800;}
@@ -115,6 +116,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
 [data-theme="light"] .b-ai{background:#f2e8ff;color:#6a3aaf;}
 [data-theme="light"] .b-sci{background:#e0f5f0;color:#1a7a68;}
 [data-theme="light"] .b-news{background:#fbeee4;color:#9a5a2a;}
+[data-theme="light"] .b-opp{background:#fbf2d0;color:#7a5e0a;}
 /* RIGHT PANEL */
 .right-panel{width:230px;min-width:230px;border-left:1px solid var(--border);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:18px;}
 .rp-title{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;}
@@ -268,6 +270,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <div class="sb-item" onclick="filterSource('ai',this,'home')"><span class="sb-dot" style="background:#c79cff"></span>AI<span class="sb-count" id="cnt-ai">0</span></div>
       <div class="sb-item" onclick="filterSource('science',this,'home')"><span class="sb-dot" style="background:#4ec3b0"></span>Science / Tech<span class="sb-count" id="cnt-science">0</span></div>
       <div class="sb-item" onclick="filterSource('news',this,'home')"><span class="sb-dot" style="background:#e8a87c"></span>News / Analysis<span class="sb-count" id="cnt-news">0</span></div>
+      <div class="sb-item" onclick="filterSource('opportunities',this,'home')"><span class="sb-dot" style="background:#f0c650"></span>Contract Opps<span class="sb-count" id="cnt-opportunities">0</span></div>
     </div>
     <div class="sb-section">
       <div class="sb-label">Priority Tags</div>
@@ -282,7 +285,7 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <div class="sdiv"></div>
       <div class="stat"><span class="stat-n" id="statArchived">0</span>&nbsp;archived</div>
       <div class="sdiv"></div>
-      <div class="stat"><span class="stat-n">13</span>&nbsp;sources</div>
+      <div class="stat"><span class="stat-n">14</span>&nbsp;sources</div>
     </div>
     <!-- Mobile-only source filter (sidebar is hidden on small screens) -->
     <div class="msrc-bar" id="mobileSourceBar"></div>
@@ -525,6 +528,7 @@ const SOURCES=[
   {id:'ai',label:'AI',bc:'b-ai',type:'rule'},
   {id:'science',label:'SCI/TECH',bc:'b-sci',type:'rule'},
   {id:'news',label:'NEWS',bc:'b-news',type:'report'},
+  {id:'opportunities',label:'SAM.gov',bc:'b-opp',type:'contract'},
 ];
 
 // ── CURATED SAMPLE DATA (instant first paint) ────────────
@@ -591,14 +595,18 @@ function loadCache() {
   } catch(e) { return null; }
 }
 
-// Fetch REAL federal data from the server-side aggregator (/api/feed).
-// Items already carry real URLs, dates, and Nominal keyword tags.
+// Fetch REAL federal data from the server-side aggregators.
+// /api/feed = 12 fast sources (5-min cache); /api/opportunities = SAM.gov
+// contract opportunities (separate 6-hour cache due to SAM.gov rate limits).
 async function fetchRealFeed() {
-  const response = await fetch("/api/feed");
-  if (!response.ok) throw new Error('feed HTTP ' + response.status);
-  const data = await response.json();
-  const items = Array.isArray(data.items) ? data.items : [];
-  if (!items.length) throw new Error('feed returned no items');
+  const [feedR, oppR] = await Promise.allSettled([
+    fetch("/api/feed").then(r => r.ok ? r.json() : Promise.reject(new Error('feed HTTP ' + r.status))),
+    fetch("/api/opportunities").then(r => r.ok ? r.json() : { items: [] }),
+  ]);
+  const feedItems = feedR.status === 'fulfilled' && Array.isArray(feedR.value.items) ? feedR.value.items : [];
+  const oppItems  = oppR.status === 'fulfilled' && Array.isArray(oppR.value.items) ? oppR.value.items : [];
+  const items = [...feedItems, ...oppItems];
+  if (!items.length) throw new Error('no items from feed or opportunities');
 
   return items.map(item => {
     const src = SOURCES.find(s => s.id === item.source) || SOURCES[0];
@@ -847,7 +855,7 @@ function filterSource(src,el,page){
   renderHome();
 }
 // Mobile source filter chips (sidebar is hidden < 900px)
-const SOURCE_DOT={'all':'#419B55','federal-register':'#7a9cff','congress':'#c07aff','scotus':'#ffb347','dod':'#5dbf7a','nasa':'#6ab4ff','gao':'#ffd966','white-house':'#ff7a7a','homeland':'#e0a35a','energy':'#c3d94a','transportation':'#5ab0d9','ai':'#c79cff','science':'#4ec3b0','news':'#e8a87c'};
+const SOURCE_DOT={'all':'#419B55','federal-register':'#7a9cff','congress':'#c07aff','scotus':'#ffb347','dod':'#5dbf7a','nasa':'#6ab4ff','gao':'#ffd966','white-house':'#ff7a7a','homeland':'#e0a35a','energy':'#c3d94a','transportation':'#5ab0d9','ai':'#c79cff','science':'#4ec3b0','news':'#e8a87c','opportunities':'#f0c650'};
 function buildMobileSourceBar(){
   const bar=document.getElementById('mobileSourceBar');
   if(!bar) return;
