@@ -70,42 +70,57 @@ async function houseVotes() {
 }
 
 // ── Upcoming/recent committee hearings (Congress.gov API) ────
-// Defense committees we track: HASC, SASC, HAC-D, SAC-D.
-const HEARING_COMMS = {
-  hsas00: 'HASC', ssas00: 'SASC', hsap02: 'HAC-D', ssap02: 'SAC-D',
+// Defense committees we track: HASC, SASC (full committee + all subcommittees),
+// plus the Defense Appropriations subcommittees (HAC-D, SAC-D).
+const HEARING_PAGE = {
+  HASC: 'https://armedservices.house.gov/committee-activity/hearings',
+  SASC: 'https://www.armed-services.senate.gov/hearings',
+  'HAC-D': 'https://appropriations.house.gov/subcommittees/defense-116th-congress',
+  'SAC-D': 'https://www.appropriations.senate.gov/hearings',
 };
+// Map a meeting's committee system codes to one of our labels. Armed Services matches
+// by prefix so SUBcommittee hearings (e.g. ssas15 Strategic Forces) are included, not
+// just the full committee (ssas00). Appropriations matches only the Defense subcommittee.
+function hearingLabel(codes) {
+  for (const c of codes) {
+    if (c.startsWith('hsas')) return 'HASC';
+    if (c.startsWith('ssas')) return 'SASC';
+    if (c === 'hsap02') return 'HAC-D';
+    if (c === 'ssap02') return 'SAC-D';
+  }
+  return null;
+}
 async function hearings() {
   const key = process.env.CONGRESS_API_KEY;
   if (!key) return [];
-  const out = [];
+  const collected = [];
+  // Scan BOTH chambers independently (a busy House must not crowd out the Senate).
   for (const chamber of ['house', 'senate']) {
     try {
-      const list = await fetchJSON(`https://api.congress.gov/v3/committee-meeting/${CONGRESS}/${chamber}?limit=15&api_key=${key}`);
+      const list = await fetchJSON(`https://api.congress.gov/v3/committee-meeting/${CONGRESS}/${chamber}?limit=30&api_key=${key}`);
       let checked = 0;
       for (const m of (list.committeeMeetings || [])) {
-        if (checked >= 10 || !m.url) continue; checked++;
+        if (checked >= 18 || !m.url) continue; checked++;
         try {
           const d = await fetchJSON(m.url + (m.url.includes('?') ? '&' : '?') + 'api_key=' + key);
           const cm = d.committeeMeeting || {};
           const codes = (cm.committees || []).map(c => (c.systemCode || '').toLowerCase());
-          const hit = codes.find(c => HEARING_COMMS[c]);
-          if (!hit) continue;
-          const page = chamber === 'house'
-            ? (HEARING_COMMS[hit] === 'HAC-D' ? 'https://appropriations.house.gov/subcommittees/defense-116th-congress' : 'https://armedservices.house.gov/committee-activity/hearings')
-            : (HEARING_COMMS[hit] === 'SAC-D' ? 'https://www.appropriations.senate.gov/hearings' : 'https://www.armed-services.senate.gov/hearings');
-          out.push({
-            committee: HEARING_COMMS[hit],
-            title: cm.title || `${HEARING_COMMS[hit]} committee meeting`,
+          const label = hearingLabel(codes);
+          if (!label) continue;
+          collected.push({
+            committee: label,
+            title: cm.title || `${label} committee meeting`,
             date: (cm.date || '').slice(0, 10), time: (cm.date || '').slice(11, 16),
-            url: page, tags: matchTags(cm.title || ''),
+            url: HEARING_PAGE[label], tags: matchTags(cm.title || ''),
+            _sort: cm.date || '',
           });
-          if (out.length >= 6) break;
         } catch (e) { /* skip meeting */ }
       }
     } catch (e) { /* skip chamber */ }
-    if (out.length >= 6) break;
   }
-  return out;
+  // Most recent / upcoming first; return a balanced set across chambers.
+  collected.sort((a, b) => (b._sort || '').localeCompare(a._sort || ''));
+  return collected.slice(0, 8).map(({ _sort, ...h }) => h);
 }
 
 // ── Key members: HASC/SASC/HAC-D/SAC-D leadership (free roster) ──
