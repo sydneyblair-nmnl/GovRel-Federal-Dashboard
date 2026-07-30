@@ -467,12 +467,12 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
     </div>
     <div class="etab-content active" id="etab-senate">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
-        <table class="rtable"><thead><tr><th>State</th><th>Incumbent</th><th>Party</th><th>Committees</th><th>Raised &rsquo;26</th><th>Cash on Hand</th><th>Flags</th></tr></thead><tbody id="senRaces"></tbody></table>
+        <table class="rtable"><thead><tr><th>State</th><th>Incumbent</th><th>Party</th><th>Outlook</th><th>Committees</th><th>Raised &rsquo;26</th><th>Cash on Hand</th><th>Flags</th></tr></thead><tbody id="senRaces"></tbody></table>
       </div>
     </div>
     <div class="etab-content" id="etab-house">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
-        <table class="rtable"><thead><tr><th>District</th><th>Incumbent</th><th>Party</th><th>Committees</th><th>Raised &rsquo;26</th><th>Cash on Hand</th><th>Flags</th></tr></thead><tbody id="houseRaces"></tbody></table>
+        <table class="rtable"><thead><tr><th>District</th><th>Incumbent</th><th>Party</th><th>Outlook</th><th>Committees</th><th>Raised &rsquo;26</th><th>Cash on Hand</th><th>Flags</th></tr></thead><tbody id="houseRaces"></tbody></table>
       </div>
     </div>
     <div class="etab-content" id="etab-cal">
@@ -960,14 +960,27 @@ function renderCongressPage(){
 }
 
 // ── ELECTIONS DATA (live 2026 races from /api/elections) ───
-let electionsData=null, elFilter='all', elLoaded=false;
+let electionsData=null, ratingsData={senate:{},house:{}}, elFilter='all', elLoaded=false;
 async function loadElections(){
   if(elLoaded) return; elLoaded=true;
-  try{ const r=await fetch('/api/elections'); electionsData=await r.json(); }
-  catch(e){ electionsData={house:[],senate:[],error:String(e)}; }
+  const [er, rr] = await Promise.allSettled([
+    fetch('/api/elections').then(r=>r.json()),
+    fetch('/api/ratings').then(r=>r.json()),
+  ]);
+  electionsData = er.status==='fulfilled' ? er.value : {house:[],senate:[],error:String(er.reason)};
+  if(rr.status==='fulfilled' && rr.value) ratingsData = rr.value;
   renderElKpis(); renderRaces();
 }
 function fmtMoney(n){ n=Number(n); if(!n) return '—'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+n; }
+function outlookCell(rating){
+  if(!rating) return '<span style="color:var(--text-muted)">—</span>';
+  const r=rating.toLowerCase();
+  let cls='rr-toss';
+  if(r==='toss-up') cls='rr-toss';
+  else if(r.endsWith(' r')){ cls = r.startsWith('safe')?'rr-safe-r':r.startsWith('likely')?'rr-likely-r':'rr-lean-r'; }
+  else if(r.endsWith(' d')){ cls = r.startsWith('safe')?'rr-safe-d':r.startsWith('likely')?'rr-likely-d':'rr-lean-d'; }
+  return `<span class="rrating ${cls}">${esc(rating)}</span>`;
+}
 function elMatch(r){
   if(elFilter==='all') return true;
   if(elFilter==='footprint') return r.footprint;
@@ -989,10 +1002,12 @@ function raceRow(r,isSen){
   const nameCell=r.candidate
     ? `${esc(r.incumbent||'')} <span style="color:var(--text-muted);font-size:11px">(challenger${r.currentSeat?' · currently '+esc(r.currentSeat):''})</span>`
     : esc(r.incumbent||'');
+  const rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];
   return `<tr>
     <td style="font-weight:600"><a href="${fecUrl}" target="_blank" style="color:inherit">${esc(loc)}</a></td>
     <td>${nameCell}</td>
     <td><span class="pdot ${pc}"></span> ${esc(r.party||'')}</td>
+    <td>${outlookCell(rating)}</td>
     <td><div class="tags">${comms}</div></td>
     <td class="money big">${r.fec?fmtMoney(r.fec.receipts):'—'}</td>
     <td class="money">${r.fec?fmtMoney(r.fec.cash):'—'}</td>
@@ -1002,7 +1017,7 @@ function raceRow(r,isSen){
 function renderRaces(){
   if(!electionsData) return;
   const msg=electionsData.note||electionsData.error||'No matching races';
-  const fill=(id,rows)=>{const el=document.getElementById(id);if(el)el.innerHTML=rows.length?rows.join(''):`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-muted)">${esc(msg)}</td></tr>`;};
+  const fill=(id,rows)=>{const el=document.getElementById(id);if(el)el.innerHTML=rows.length?rows.join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text-muted)">${esc(msg)}</td></tr>`;};
   fill('senRaces',(electionsData.senate||[]).filter(elMatch).map(r=>raceRow(r,true)));
   fill('houseRaces',(electionsData.house||[]).filter(elMatch).map(r=>raceRow(r,false)));
 }
