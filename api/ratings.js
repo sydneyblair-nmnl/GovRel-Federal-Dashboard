@@ -9,6 +9,9 @@ function norm(rating, party) {
   const lab = { solid: 'Safe', safe: 'Safe', strong: 'Safe', likely: 'Likely', lean: 'Lean', tilt: 'Tilt', tossup: 'Toss-up', 'toss-up': 'Toss-up' }[(rating || '').toLowerCase()] || rating;
   return lab === 'Toss-up' ? 'Toss-up' : `${lab} ${party}`;
 }
+// Ordered spectrum so we can average every rater's call into a consensus.
+const SPECTRUM = { 'safe r': 4, 'likely r': 3, 'lean r': 2, 'tilt r': 1, 'toss-up': 0, 'tilt d': -1, 'lean d': -2, 'likely d': -3, 'safe d': -4 };
+const LABELS = ['Safe D', 'Likely D', 'Lean D', 'Tilt D', 'Toss-up', 'Tilt R', 'Lean R', 'Likely R', 'Safe R']; // index = value + 4
 
 async function wikitext(page, section) {
   const url = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(page)}&format=json&prop=wikitext${section != null ? '&section=' + section : ''}`;
@@ -32,9 +35,14 @@ async function ratingsSection(page) {
   } finally { clearTimeout(t); }
 }
 
-function firstRating(body) {
-  const m = body.match(/\{\{USRaceRating\|(\w+)\|(\w+)/i);
-  return m ? norm(m[1], m[2]) : null;
+// Consensus = average of ALL raters' calls in the row, mapped back to a label.
+function consensusRating(body) {
+  const nums = [...body.matchAll(/\{\{USRaceRating\|(\w+)\|(\w+)/gi)]
+    .map(m => SPECTRUM[norm(m[1], m[2]).toLowerCase()])
+    .filter(n => n !== undefined);
+  if (!nums.length) return null;
+  const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+  return LABELS[Math.round(avg) + 4];
 }
 
 async function getSenate() {
@@ -44,7 +52,7 @@ async function getSenate() {
   const parts = wt.split(/!\s*\[\[2026 United States Senate election in ([^|\]]+?)(?:\|[^\]]+)?\]\]/);
   for (let i = 1; i < parts.length; i += 2) {
     const code = STATE[parts[i].trim()];
-    const r = firstRating(parts[i + 1] || '');
+    const r = consensusRating(parts[i + 1] || '');
     if (code && r) out[code] = r;
   }
   return out;
@@ -58,7 +66,7 @@ async function getHouse() {
     const st = (parts[i] || '').toUpperCase();
     let dist = (parts[i + 1] || '').toUpperCase();
     dist = dist === 'AL' ? '0' : (/^\d+$/.test(dist) ? String(parseInt(dist, 10)) : dist);
-    const r = firstRating(parts[i + 2] || '');
+    const r = consensusRating(parts[i + 2] || '');
     if (st && r) out[`${st}-${dist}`] = r;
   }
   return out;
