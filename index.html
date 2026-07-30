@@ -972,14 +972,16 @@ async function loadElections(){
   renderElKpis(); renderRaces();
 }
 function fmtMoney(n){ n=Number(n); if(!n) return '—'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+n; }
-function outlookCell(rating){
+function outlookCell(rating, inferred){
   if(!rating) return '<span style="color:var(--text-muted)">—</span>';
   const r=rating.toLowerCase();
   let cls='rr-toss';
   if(r==='toss-up') cls='rr-toss';
   else if(r.endsWith(' r')){ cls = r.startsWith('safe')?'rr-safe-r':r.startsWith('likely')?'rr-likely-r':'rr-lean-r'; }
   else if(r.endsWith(' d')){ cls = r.startsWith('safe')?'rr-safe-d':r.startsWith('likely')?'rr-likely-d':'rr-lean-d'; }
-  return `<span class="rrating ${cls}">${esc(rating)}</span>`;
+  const label=(inferred?'~':'')+rating;
+  const title=inferred?' title="Inferred — no forecaster rates this seat, so safe by the incumbent\'s party"':'';
+  return `<span class="rrating ${cls}"${title}>${esc(label)}</span>`;
 }
 function elMatch(r){
   if(elFilter==='all') return true;
@@ -1005,12 +1007,13 @@ function raceRow(r,isSen){
   // Raters only list competitive races; a seat no rater lists is safe for the
   // incumbent's party, so default the blanks to "Safe <party>" for a consistent column.
   let rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];
-  if(!rating && !r.candidate && (r.party==='R'||r.party==='D')) rating='Safe '+r.party;
+  let inferred=false;
+  if(!rating && !r.candidate && (r.party==='R'||r.party==='D')){ rating='Safe '+r.party; inferred=true; }
   return `<tr>
     <td style="font-weight:600"><a href="${fecUrl}" target="_blank" style="color:inherit">${esc(loc)}</a></td>
     <td>${nameCell}</td>
     <td><span class="pdot ${pc}"></span> ${esc(r.party||'')}</td>
-    <td>${outlookCell(rating)}</td>
+    <td>${outlookCell(rating, inferred)}</td>
     <td><div class="tags">${comms}</div></td>
     <td class="money big">${r.fec?fmtMoney(r.fec.receipts):'—'}</td>
     <td class="money">${r.fec?fmtMoney(r.fec.cash):'—'}</td>
