@@ -10,7 +10,7 @@ const FOOTPRINT_SEN_STATES = new Set(['NY', 'CA', 'TN', 'TX', 'VA', 'WA']);
 // HSAP/SSAP = full House/Senate Appropriations committees (superset of the HAC-D/
 // SAC-D defense subcommittees). Order matters: defense-subcommittee codes are checked
 // before the full-committee codes so a defense-sub member shows the more specific tag.
-const COMMITTEES = { HSAP02: 'HAC-D', SSAP02: 'SAC-D', HSAS: 'HASC', SSAS: 'SASC', HSAP: 'House Approps', SSAP: 'Sen Approps' };
+const COMMITTEES = { HSAP02: 'HAC-D', SSAP02: 'SAC-D', HSAS: 'HASC', SSAS: 'SASC', HSAP: 'HAC', SSAP: 'SAC' };
 // Resolved "other flagged" members (stable bioguide IDs). (Moulton, M001196, is
 // tracked as a Senate candidate instead — see SENATE_CANDIDATES — so he's not here.)
 const FLAGGED = new Set([

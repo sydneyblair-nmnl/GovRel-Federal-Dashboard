@@ -460,10 +460,10 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <button class="hbtn" onclick="setElFilter('flagged',this)">&#9873; Flagged</button>
       <button class="hbtn" onclick="setElFilter('HASC',this)">HASC</button>
       <button class="hbtn" onclick="setElFilter('SASC',this)">SASC</button>
+      <button class="hbtn" onclick="setElFilter('HAC',this)">HAC</button>
       <button class="hbtn" onclick="setElFilter('HAC-D',this)">HAC-D</button>
+      <button class="hbtn" onclick="setElFilter('SAC',this)">SAC</button>
       <button class="hbtn" onclick="setElFilter('SAC-D',this)">SAC-D</button>
-      <button class="hbtn" onclick="setElFilter('House Approps',this)">House Approps</button>
-      <button class="hbtn" onclick="setElFilter('Sen Approps',this)">Sen Approps</button>
     </div>
     <div class="etab-content active" id="etab-senate">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
@@ -1029,10 +1029,20 @@ function renderElKpis(){
   set('kFoot',all.filter(r=>r.footprint).length||'—');
   set('kComm',all.filter(r=>(r.committees||[]).length).length||'—');
 }
+// Chamber-specific committee filters auto-switch to that chamber's tab so the
+// results are actually visible (a House committee has no rows on the Senate tab).
+const FILTER_CHAMBER={HASC:'house',HAC:'house','HAC-D':'house',SASC:'senate',SAC:'senate','SAC-D':'senate'};
 function setElFilter(f,btn){
   elFilter=f;
   document.querySelectorAll('#elFilterBar .hbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
+  const ch=FILTER_CHAMBER[f];
+  if(ch){
+    document.querySelectorAll('.etab-content').forEach(e=>e.classList.remove('active'));
+    const pane=document.getElementById('etab-'+ch); if(pane) pane.classList.add('active');
+    document.querySelectorAll('.etab').forEach(e=>e.classList.toggle('active',(e.getAttribute('onclick')||'').includes("'"+ch+"'")));
+    const fb=document.getElementById('elFilterBar'); if(fb) fb.style.display='flex';
+  }
   renderRaces();
 }
 const EL_CAL=[
