@@ -1002,7 +1002,10 @@ function raceRow(r,isSen){
   const nameCell=r.candidate
     ? `${esc(r.incumbent||'')} <span style="color:var(--text-muted);font-size:11px">(challenger${r.currentSeat?' · currently '+esc(r.currentSeat):''})</span>`
     : esc(r.incumbent||'');
-  const rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];
+  // Raters only list competitive races; a seat no rater lists is safe for the
+  // incumbent's party, so default the blanks to "Safe <party>" for a consistent column.
+  let rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];
+  if(!rating && !r.candidate && (r.party==='R'||r.party==='D')) rating='Safe '+r.party;
   return `<tr>
     <td style="font-weight:600"><a href="${fecUrl}" target="_blank" style="color:inherit">${esc(loc)}</a></td>
     <td>${nameCell}</td>
