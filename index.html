@@ -462,6 +462,8 @@ header{position:sticky;top:0;z-index:200;background:var(--header-bg);border-bott
       <button class="hbtn" onclick="setElFilter('SASC',this)">SASC</button>
       <button class="hbtn" onclick="setElFilter('HAC-D',this)">HAC-D</button>
       <button class="hbtn" onclick="setElFilter('SAC-D',this)">SAC-D</button>
+      <button class="hbtn" onclick="setElFilter('House Approps',this)">House Approps</button>
+      <button class="hbtn" onclick="setElFilter('Sen Approps',this)">Sen Approps</button>
     </div>
     <div class="etab-content active" id="etab-senate">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
@@ -978,11 +980,18 @@ function raceRow(r,isSen){
     ? `https://www.fec.gov/data/elections/senate/${r.state}/2026/`
     : `https://www.fec.gov/data/elections/house/${r.state}/${String(r.district).padStart(2,'0')}/2026/`;
   const comms=(r.committees||[]).map(c=>`<span class="tag m">${c}</span>`).join('')||'<span style="color:var(--text-muted)">—</span>';
-  const flags=[r.footprint?'<span class="nom-flag">&#9670; Footprint</span>':'', (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''].filter(Boolean).join(' ');
+  const flags=[
+    r.candidate?`<span class="nom-flag" style="color:#6ab4ff">&#8599; Challenger</span>`:'',
+    r.footprint?'<span class="nom-flag">&#9670; Footprint</span>':'',
+    (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''
+  ].filter(Boolean).join(' ');
   const pc=r.party==='R'?'pdot-r':r.party==='D'?'pdot-d':'';
+  const nameCell=r.candidate
+    ? `${esc(r.incumbent||'')} <span style="color:var(--text-muted);font-size:11px">(challenger${r.currentSeat?' · currently '+esc(r.currentSeat):''})</span>`
+    : esc(r.incumbent||'');
   return `<tr>
     <td style="font-weight:600"><a href="${fecUrl}" target="_blank" style="color:inherit">${esc(loc)}</a></td>
-    <td>${esc(r.incumbent||'')}</td>
+    <td>${nameCell}</td>
     <td><span class="pdot ${pc}"></span> ${esc(r.party||'')}</td>
     <td><div class="tags">${comms}</div></td>
     <td class="money big">${r.fec?fmtMoney(r.fec.receipts):'—'}</td>

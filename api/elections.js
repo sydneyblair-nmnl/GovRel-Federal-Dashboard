@@ -7,14 +7,23 @@
 const FOOTPRINT_HOUSE = new Set(['NY-12', 'CA-15', 'CA-37', 'TN-7', 'TX-37', 'VA-8', 'WA-7']);
 const FOOTPRINT_SEN_STATES = new Set(['NY', 'CA', 'TN', 'TX', 'VA', 'WA']);
 // Committee thomas_id -> Nominal label. HAC-D / SAC-D are the Defense subcommittees.
-const COMMITTEES = { HSAS: 'HASC', SSAS: 'SASC', HSAP02: 'HAC-D', SSAP02: 'SAC-D' };
-// Resolved "other flagged" members (stable bioguide IDs).
+// HSAP/SSAP = full House/Senate Appropriations committees (superset of the HAC-D/
+// SAC-D defense subcommittees). Order matters: defense-subcommittee codes are checked
+// before the full-committee codes so a defense-sub member shows the more specific tag.
+const COMMITTEES = { HSAP02: 'HAC-D', SSAP02: 'SAC-D', HSAS: 'HASC', SSAS: 'SASC', HSAP: 'House Approps', SSAP: 'Sen Approps' };
+// Resolved "other flagged" members (stable bioguide IDs). (Moulton, M001196, is
+// tracked as a Senate candidate instead — see SENATE_CANDIDATES — so he's not here.)
 const FLAGGED = new Set([
   'B000740','B001299','B001319','B001324','C001053','C001055','C001063','C001069',
   'C001096','D000616','E000071','F000459','F000472','F000480','G000604','H001042',
-  'J000304','K000377','K000388','K000399','M000934','M001143','M001196','M001233',
+  'J000304','K000377','K000388','K000399','M000934','M001143','M001233',
   'R000122','R000579','S000510','S001194','S001198','S001232','V000128','W000830',
 ]);
+// House members running for Senate — tracked as a dedicated Senate-tab candidate row
+// (not incumbents, so they aren't in the roster-built Senate list).
+const SENATE_CANDIDATES = [
+  { name: 'Seth Moulton', state: 'MA', party: 'D', currentSeat: 'MA-6', fecId: 'S6MA00296' },
+];
 
 async function getJSON(url, opts = {}, ms = 15000) {
   const ctrl = new AbortController();
@@ -63,6 +72,7 @@ export default async function handler(req, res) {
       const care = foot || FLAGGED.has(big) || committeesFor(big).length > 0;
       if (care) (p.id.fec || []).forEach(id => careFecIds.add(id));
     }
+    SENATE_CANDIDATES.forEach(c => careFecIds.add(c.fecId)); // ensure their Senate money is fetched
 
     // 2) FEC money. (a) care-set by candidate_id (guaranteed), (b) top-N by receipts for
     //    broad coverage of other high-profile races + challenger context.
@@ -140,8 +150,18 @@ export default async function handler(req, res) {
         });
       }
     }
+    // House members running for Senate — add as dedicated (non-incumbent) Senate rows.
+    for (const c of SENATE_CANDIDATES) {
+      senate.push({
+        chamber: 'senate', seat: c.state, state: c.state, bioguide: null,
+        incumbent: c.name, party: c.party, committees: [],
+        footprint: FOOTPRINT_SEN_STATES.has(c.state), flagged: true,
+        candidate: true, currentSeat: c.currentSeat,
+        fec: moneyById[c.fecId] || null, challengers: [],
+      });
+    }
     house.sort((a, b) => a.state.localeCompare(b.state) || (a.district - b.district));
-    senate.sort((a, b) => a.state.localeCompare(b.state));
+    senate.sort((a, b) => a.state.localeCompare(b.state) || (a.candidate === b.candidate ? 0 : a.candidate ? 1 : -1));
 
     res.setHeader('Cache-Control', 's-maxage=43200, stale-while-revalidate=86400'); // 12h fresh, 24h stale
     res.status(200).json({
