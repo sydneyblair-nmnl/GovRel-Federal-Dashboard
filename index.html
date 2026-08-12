@@ -1006,6 +1006,7 @@ function raceRow(r,isSen){
   const comms=(r.committees||[]).map(c=>`<span class="tag m">${c}</span>`).join('')||'<span style="color:var(--text-muted)">—</span>';
   const flags=[
     r.candidate?`<span class="nom-flag" style="color:#6ab4ff">&#8599; Challenger</span>`:'',
+    r.notSeeking?'<span class="nom-flag" style="color:#ffb347">&#9633; Open seat</span>':'',
     r.footprint?'<span class="nom-flag">&#9670; Footprint</span>':'',
     (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''
   ].filter(Boolean).join(' ');
@@ -1013,9 +1014,14 @@ function raceRow(r,isSen){
   const opp = (!r.candidate && r.opponent)
     ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">vs ${esc(fecName(r.opponent.name))} (${esc(r.opponent.party)}) &middot; ${fmtMoney(r.opponent.receipts)}</div>`
     : '';
+  // For an open seat, the listed member is the retiring/departing incumbent — not on
+  // the 2026 ballot — so annotate the name and don't imply they're the candidate.
+  const openNote=r.notSeeking
+    ? ` <span style="color:#ffb347;font-size:11px;white-space:nowrap">(not running &middot; ${esc(r.notSeeking)})</span>`
+    : '';
   const nameCell=r.candidate
     ? `${esc(r.incumbent||'')} <span style="color:var(--text-muted);font-size:11px">(challenger${r.currentSeat?' · currently '+esc(r.currentSeat):''})</span>`
-    : esc(r.incumbent||'')+opp;
+    : `<span${r.notSeeking?' style="text-decoration:line-through;text-decoration-color:var(--text-muted)"':''}>${esc(r.incumbent||'')}</span>${openNote}${opp}`;
   // Raters only list competitive races; a seat no rater lists is safe for the
   // incumbent's party, so default the blanks to "Safe <party>" for a consistent column.
   let rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];

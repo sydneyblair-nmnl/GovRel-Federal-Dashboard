@@ -24,6 +24,33 @@ const FLAGGED = new Set([
 const SENATE_CANDIDATES = [
   { name: 'Seth Moulton', state: 'MA', party: 'D', currentSeat: 'MA-6', fecId: 'S6MA00296' },
 ];
+// Incumbents NOT running for their current seat in 2026 (retiring, running for
+// other office) or who lost renomination — so the "incumbent" isn't on the ballot
+// and the seat is effectively open. Keyed by seat id, so at-large (-0) and numbered
+// districts both match the computed seat. Manually curated from Ballotpedia/Wikipedia
+// open-seat trackers (record 60+ House retirements this cycle); refresh periodically.
+const NOT_SEEKING_HOUSE = {
+  'CA-11': 'retiring', 'CA-26': 'retiring', 'DC-0': 'retiring', 'FL-24': 'retiring',
+  'IL-2': 'running for Senate', 'IL-4': 'retiring', 'IL-7': 'retiring', 'IL-8': 'running for Senate', 'IL-9': 'retiring',
+  'LA-6': 'running for state senate', 'ME-2': 'retiring', 'MD-5': 'retiring', 'MA-6': 'running for Senate',
+  'MI-11': 'running for Senate', 'MN-2': 'running for Senate', 'NH-1': 'running for Senate',
+  'NJ-12': 'retiring', 'NY-7': 'retiring', 'NY-12': 'retiring', 'PA-3': 'retiring', 'TN-9': 'retiring',
+  'TX-30': 'running for Senate', 'TX-33': 'retiring', 'TX-37': 'retiring', 'VI-0': 'running for Governor',
+  'AL-1': 'running for Senate', 'AZ-1': 'running for Governor', 'AZ-5': 'running for Governor', 'CA-48': 'retiring',
+  'FL-2': 'retiring', 'FL-11': 'retiring', 'FL-16': 'retiring', 'FL-19': 'running for Governor',
+  'GA-1': 'running for Senate', 'GA-10': 'running for Senate', 'GA-11': 'retiring',
+  'IA-2': 'running for Senate', 'IA-4': 'running for Governor', 'KY-6': 'running for Senate', 'LA-5': 'running for Senate',
+  'MI-10': 'running for Governor', 'MO-6': 'retiring', 'MT-1': 'retiring', 'NE-2': 'retiring', 'NV-2': 'retiring',
+  'NY-21': 'retiring', 'NC-11': 'retiring', 'OK-1': 'running for Senate', 'SC-1': 'running for Governor', 'SC-5': 'running for Governor',
+  'SD-0': 'running for Governor', 'TN-6': 'running for Governor', 'TX-8': 'retiring', 'TX-10': 'retiring', 'TX-19': 'retiring',
+  'TX-21': 'running for AG', 'TX-22': 'retiring', 'TX-38': 'running for Senate', 'UT-4': 'retiring', 'WA-4': 'retiring',
+  'WI-7': 'running for Governor', 'WY-0': 'running for Senate',
+};
+const NOT_SEEKING_SENATE = {
+  'IL': 'retiring', 'MI': 'retiring', 'MN': 'retiring', 'NH': 'retiring', 'AL': 'running for Governor',
+  'IA': 'retiring', 'KY': 'retiring', 'MT': 'retiring', 'NC': 'retiring', 'OK': 'retiring', 'WY': 'retiring',
+  'LA': 'lost primary', 'TX': 'lost primary',
+};
 
 async function getJSON(url, opts = {}, ms = 15000) {
   const ctrl = new AbortController();
@@ -147,6 +174,7 @@ export default async function handler(req, res) {
           chamber: 'house', seat, state: t.state, district: t.district, bioguide: big,
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
+          notSeeking: NOT_SEEKING_HOUSE[seat] || null,
           fec: im, opponent: opponentOf(seat, fecIds, party), challengers: challengers(seat, fecIds, party),
         });
       } else if (t.type === 'sen' && String(t.end || '').startsWith('2027')) {
@@ -156,6 +184,7 @@ export default async function handler(req, res) {
           chamber: 'senate', seat: t.state, state: t.state, bioguide: big,
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
+          notSeeking: NOT_SEEKING_SENATE[t.state] || null,
           fec: im, opponent: opponentOf(t.state, fecIds, party), challengers: challengers(t.state, fecIds, party),
         });
       }
@@ -180,6 +209,8 @@ export default async function handler(req, res) {
         houseRaces: house.length, senateRaces: senate.length,
         flaggedHouse: house.filter(r => r.flagged).length,
         flaggedSenate: senate.filter(r => r.flagged).length,
+        openHouse: house.filter(r => r.notSeeking).length,
+        openSenate: senate.filter(r => r.notSeeking).length,
         fetchedAt: new Date().toISOString(),
       },
     });
