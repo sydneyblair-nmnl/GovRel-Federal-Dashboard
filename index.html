@@ -1011,7 +1011,12 @@ function raceRow(r,isSen){
     (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''
   ].filter(Boolean).join(' ');
   const pc=r.party==='R'?'pdot-r':r.party==='D'?'pdot-d':'';
-  const opp = (!r.candidate && r.opponent)
+  // For an open seat, show who's running to replace the departing member (leading
+  // fundraiser per party). Otherwise show the incumbent's general-election opponent.
+  const runList=(r.notSeeking && r.runners && r.runners.length)
+    ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">Running: ${r.runners.map(c=>`${esc(fecName(c.name))} (${esc(c.party)}) &middot; ${fmtMoney(c.receipts)}`).join(' &nbsp;|&nbsp; ')}</div>`
+    : r.notSeeking ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">Running: candidates TBD</div>` : '';
+  const opp = (!r.candidate && !r.notSeeking && r.opponent)
     ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">vs ${esc(fecName(r.opponent.name))} (${esc(r.opponent.party)}) &middot; ${fmtMoney(r.opponent.receipts)}</div>`
     : '';
   // For an open seat, the listed member is the retiring/departing incumbent — not on
@@ -1021,7 +1026,7 @@ function raceRow(r,isSen){
     : '';
   const nameCell=r.candidate
     ? `${esc(r.incumbent||'')} <span style="color:var(--text-muted);font-size:11px">(challenger${r.currentSeat?' · currently '+esc(r.currentSeat):''})</span>`
-    : `<span${r.notSeeking?' style="text-decoration:line-through;text-decoration-color:var(--text-muted)"':''}>${esc(r.incumbent||'')}</span>${openNote}${opp}`;
+    : `<span${r.notSeeking?' style="text-decoration:line-through;text-decoration-color:var(--text-muted)"':''}>${esc(r.incumbent||'')}</span>${openNote}${opp}${runList}`;
   // Raters only list competitive races; a seat no rater lists is safe for the
   // incumbent's party, so default the blanks to "Safe <party>" for a consistent column.
   let rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];

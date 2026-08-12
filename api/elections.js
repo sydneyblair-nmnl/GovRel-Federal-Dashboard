@@ -157,6 +157,25 @@ export default async function handler(req, res) {
         .sort((a, b) => b.m.receipts - a.m.receipts)[0];
       return top ? { name: top.name, party: top.party, receipts: top.m.receipts, cash: top.m.cash } : null;
     };
+    // For OPEN seats (no incumbent on the ballot): who's actually running. Take the
+    // best-funded candidate of each major party for the seat, plus any better-funded
+    // independent, so both sides show. Money is the only free post-primary signal, so
+    // this is "leading fundraisers," not an official nominee list.
+    const runnersFor = (seat, fecIds) => {
+      const own = new Set(fecIds || []);
+      const cands = (bySeat[seat] || []).filter(c => !own.has(c.id) && c.m && c.m.receipts > 0);
+      const picks = [];
+      for (const P of ['REP', 'DEM']) {
+        const top = cands.filter(c => (c.party || '').toUpperCase().startsWith(P))
+          .sort((a, b) => b.m.receipts - a.m.receipts)[0];
+        if (top) picks.push({ name: top.name, party: top.party, receipts: top.m.receipts, cash: top.m.cash });
+      }
+      const other = cands.filter(c => !['REP', 'DEM'].some(P => (c.party || '').toUpperCase().startsWith(P)))
+        .sort((a, b) => b.m.receipts - a.m.receipts)[0];
+      if (other && (!picks.length || other.m.receipts > Math.min(...picks.map(p => p.receipts))))
+        picks.push({ name: other.name, party: other.party, receipts: other.m.receipts, cash: other.m.cash });
+      return picks.sort((a, b) => b.receipts - a.receipts).slice(0, 3);
+    };
 
     const house = [], senate = [];
     for (const person of leg) {
@@ -175,6 +194,7 @@ export default async function handler(req, res) {
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
           notSeeking: NOT_SEEKING_HOUSE[seat] || null,
+          runners: NOT_SEEKING_HOUSE[seat] ? runnersFor(seat, fecIds) : null,
           fec: im, opponent: opponentOf(seat, fecIds, party), challengers: challengers(seat, fecIds, party),
         });
       } else if (t.type === 'sen' && String(t.end || '').startsWith('2027')) {
@@ -185,6 +205,7 @@ export default async function handler(req, res) {
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
           notSeeking: NOT_SEEKING_SENATE[t.state] || null,
+          runners: NOT_SEEKING_SENATE[t.state] ? runnersFor(t.state, fecIds) : null,
           fec: im, opponent: opponentOf(t.state, fecIds, party), challengers: challengers(t.state, fecIds, party),
         });
       }
