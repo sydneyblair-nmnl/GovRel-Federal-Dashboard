@@ -81,9 +81,64 @@ const SENATE_NOMINEES = {
   OK: [['Kevin Hern', 'R'], ['Jim Priest', 'D']],
   TX: [['James Talarico', 'D'], ['Ken Paxton', 'R']],
 };
-// House open-seat nominees are curated per-race as they're confirmed. Empty for now —
-// House open seats fall back to leading-fundraiser + primary-status labeling.
-const HOUSE_NOMINEES = {};
+// Confirmed 2026 House nominees for open seats whose primary/runoff is decided
+// (verified from race results — the WINNER, not the top fundraiser; many upsets, e.g.
+// Allred beat incumbent Johnson in TX-33, Flanagan-style surprises down-ballot). CA/WA
+// are top-two so both advancers may share a party. LA-5/-6 omitted: the court-ordered
+// new map put all candidates on a single Nov 3 jungle-primary ballot (no party nominees).
+const HOUSE_NOMINEES = {
+  'TX-8': [['Jessica Steinmann', 'R'], ['Laura Jones', 'D']],
+  'TX-10': [['Chris Gober', 'R'], ['Caitlin Rourk', 'D']],
+  'TX-19': [['Tom Sell', 'R'], ['Kyle Rable', 'D']],
+  'TX-21': [['Mark Teixeira', 'R'], ['Kristin Hook', 'D']],
+  'TX-22': [['Trever Nehls', 'R'], ['Marquette Greene-Scott', 'D']],
+  'TX-30': [['Everett Jackson', 'R'], ['Frederick Haynes', 'D']],
+  'TX-33': [['Patrick Gillespie', 'R'], ['Colin Allred', 'D']],
+  'TX-37': [['Lauren Peña', 'R'], ['Greg Casar', 'D']],
+  'TX-38': [['Jon Bonck', 'R'], ['Melissa McDonough', 'D']],
+  'IL-2': [['Donna Miller', 'D'], ['Mike Noack', 'R']],
+  'IL-4': [['Patty García', 'D'], ['Lupe Castillo', 'R']],
+  'IL-7': [['La Shawn Ford', 'D'], ['Chad Koppie', 'R']],
+  'IL-8': [['Melissa Bean', 'D'], ['Jennifer Davis', 'R']],
+  'IL-9': [['Daniel Biss', 'D'], ['John Elleson', 'R']],
+  'IA-2': [['Lindsay James', 'D'], ['Joe Mitchell', 'R']],
+  'IA-4': [['Dave Dawson', 'D'], ['Chris McGowan', 'R']],
+  'CA-11': [['Scott Wiener', 'D'], ['Connie Chan', 'D']],
+  'CA-26': [['Jacqui Irwin', 'D'], ['Sam Gallucci', 'R']],
+  'CA-48': [['Marni von Wilpert', 'D'], ['Jim Desmond', 'R']],
+  'AZ-1': [['Jay Feely', 'R'], ['Amish Shah', 'D']],
+  'AZ-5': [['Mark Lamb', 'R'], ['Elizabeth Lee', 'D']],
+  'NV-2': [['David Flippo', 'R'], ['Teresa Benitez-Thompson', 'D']],
+  'UT-4': [['Mike Kennedy', 'R'], ['Jonny Larsen', 'D'], ['Steven Burt', 'I']],
+  'GA-1': [['Jim Kingston', 'R'], ['Amanda Hollowell', 'D']],
+  'GA-10': [['Houston Gaines', 'R'], ['Pam DeLancy', 'D']],
+  'GA-11': [['John Cowan', 'R'], ['Chris Harden', 'D']],
+  'SC-1': [['Jenny Costa Honeycutt', 'R'], ['Nancy Lacore', 'D']],
+  'SC-5': [['Wes Climer', 'R'], ['Mallory Dittmer', 'D']],
+  'KY-6': [['Ralph Alvarado', 'R'], ['Zach Dembo', 'D']],
+  'AL-1': [['Jerry Carl', 'R'], ['Clyde Jones', 'D']],
+  'NC-11': [['Jennifer Balkcom', 'R'], ['Jamie Ager', 'D']],
+  'NY-7': [['Claire Valdez', 'D'], ['Melvin Rivera', 'R']],
+  'NY-12': [['Micah Lasher', 'D'], ['Caroline Shinkle', 'R']],
+  'NY-21': [['Blake Gendebien', 'D'], ['Anthony Constantino', 'R']],
+  'NJ-12': [['Adam Hamawy', 'D'], ['Gregg Mele', 'R']],
+  'PA-3': [['Chris Rabb', 'D']],
+  'MD-5': [['Adrian Boafo', 'D'], ['Chris Chaffee', 'R']],
+  'ME-2': [['Matt Dunlap', 'D'], ['Paul LePage', 'R']],
+  'MI-10': [['Christina Hines', 'D'], ['Michael Bouchard', 'R']],
+  'MI-11': [['Jeremy Moss', 'D'], ['Ethan Baker', 'R']],
+  'MN-2': [['Matt Little', 'D'], ['Eric Pratt', 'R']],
+  'WI-7': [['Fred Clark', 'D'], ['Michael Alfonso', 'R']],
+  'MO-6': [['Chris Stigall', 'R'], ['Josh Smead', 'D']],
+  'TN-6': [['Johnny Garrett', 'R'], ['Mike Croley', 'D']],
+  'TN-9': [['Justin Pearson', 'D'], ['Brent Taylor', 'R']],
+  'MT-1': [['Aaron Flint', 'R'], ['Sam Forstag', 'D']],
+  'NE-2': [['Brinker Harding', 'R'], ['Denise Powell', 'D']],
+  'SD-0': [['Marty Jackley', 'R'], ['Nikki Gronli', 'D']],
+  'OK-1': [['Mark Tedford', 'R'], ['John Croisant', 'D']],
+  'WA-4': [['Amanda McKinney', 'R'], ['John Duresky', 'D']],
+  'DC-0': [['Robert White', 'D']],
+};
 
 async function getJSON(url, opts = {}, ms = 15000) {
   const ctrl = new AbortController();
