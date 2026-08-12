@@ -972,6 +972,15 @@ async function loadElections(){
   renderElKpis(); renderRaces();
 }
 function fmtMoney(n){ n=Number(n); if(!n) return '—'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+n; }
+// FEC "LASTNAME, FIRST MIDDLE" -> "First Lastname" (basic title-case)
+function fecName(n){
+  if(!n) return '';
+  const tc=w=>w? w.charAt(0).toUpperCase()+w.slice(1).toLowerCase():w;
+  const parts=n.split(',');
+  const last=(parts[0]||'').trim().split(/\s+/).map(tc).join(' ');
+  const first=(parts[1]||'').trim().split(/\s+/)[0];
+  return first ? `${tc(first)} ${last}` : last;
+}
 function outlookCell(rating, inferred){
   if(!rating) return '<span style="color:var(--text-muted)">—</span>';
   const r=rating.toLowerCase();
@@ -1001,9 +1010,12 @@ function raceRow(r,isSen){
     (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''
   ].filter(Boolean).join(' ');
   const pc=r.party==='R'?'pdot-r':r.party==='D'?'pdot-d':'';
+  const opp = (!r.candidate && r.opponent)
+    ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">vs ${esc(fecName(r.opponent.name))} (${esc(r.opponent.party)}) &middot; ${fmtMoney(r.opponent.receipts)}</div>`
+    : '';
   const nameCell=r.candidate
     ? `${esc(r.incumbent||'')} <span style="color:var(--text-muted);font-size:11px">(challenger${r.currentSeat?' · currently '+esc(r.currentSeat):''})</span>`
-    : esc(r.incumbent||'');
+    : esc(r.incumbent||'')+opp;
   // Raters only list competitive races; a seat no rater lists is safe for the
   // incumbent's party, so default the blanks to "Safe <party>" for a consistent column.
   let rating = isSen ? (ratingsData.senate||{})[r.state] : (ratingsData.house||{})[`${r.state}-${r.district}`];
@@ -1051,11 +1063,19 @@ function setElFilter(f,btn){
   }
   renderRaces();
 }
+const NCSL='https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates';
 const EL_CAL=[
+  {date:'Mar 3, 2026',event:'Texas primary (first of the cycle)',type:'primary',link:NCSL},
+  {date:'Mar 17, 2026',event:'Illinois primary',type:'primary',link:NCSL},
+  {date:'May 12, 2026',event:'Nebraska, West Virginia primaries',type:'primary',link:NCSL},
+  {date:'May 19, 2026',event:'Georgia, Kentucky, Oregon, Idaho, Arkansas primaries',type:'primary',link:NCSL},
+  {date:'Jun 2, 2026',event:'Iowa, Montana, New Jersey, New Mexico, South Dakota primaries',type:'primary',link:NCSL},
+  {date:'Jun 23, 2026',event:'New York, Colorado, Utah primaries',type:'primary',link:NCSL},
   {date:'Jul 15, 2026',event:'FEC Q2 2026 filing deadline',type:'fec',link:'https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/'},
-  {date:'Aug 4, 2026',event:'Michigan, Missouri, Kansas primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
-  {date:'Aug 11, 2026',event:'Connecticut, Minnesota, Wisconsin primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
-  {date:'Sep 1, 2026',event:'Massachusetts, Rhode Island primaries',type:'primary',link:'https://www.ncsl.org/elections-and-campaigns/2026-state-primary-election-dates'},
+  {date:'Aug 4, 2026',event:'Arizona, Kansas, Michigan, Missouri, Washington primaries',type:'primary',link:NCSL},
+  {date:'Aug 11, 2026',event:'Connecticut, Minnesota, Vermont, Wisconsin primaries',type:'primary',link:NCSL},
+  {date:'Aug 18, 2026',event:'Alaska, Florida, Wyoming primaries',type:'primary',link:NCSL},
+  {date:'Sep 8, 2026',event:'New Hampshire, Rhode Island, Delaware, Massachusetts primaries',type:'primary',link:NCSL},
   {date:'Sep 15, 2026',event:'FEC Q3 2026 filing deadline',type:'fec',link:'https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/'},
   {date:'Oct 1, 2026',event:'Voter registration deadlines (most states)',type:'admin',link:'https://vote.gov/register/'},
   {date:'Oct 19, 2026',event:'Early voting begins (most states)',type:'admin',link:'https://vote.gov/'},
@@ -1070,17 +1090,25 @@ function renderElectionsPage(){
   document.getElementById('daysOut').textContent = Math.ceil((elDay - NOW) / DAY_MS);
   loadElections(); // fetch + render races (once; cached thereafter)
 
+  const todayStr=NOW.toDateString();
+  const statusOf=e=>{const d=new Date(e.date); if(d.toDateString()===todayStr) return 'today'; return d<NOW?'done':'upcoming';};
+  const pill=s=> s==='done'
+    ? '<span class="rrating" style="background:var(--tag-bg);color:var(--green)">&#10003; Completed</span>'
+    : s==='today' ? '<span class="rrating rr-toss">Today</span>'
+    : '<span style="color:var(--text-muted);font-size:11px">Upcoming</span>';
   document.getElementById('elCal').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr>
       <th style="text-align:left;padding:7px 12px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);">Date</th>
       <th style="text-align:left;padding:7px 12px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);">Event</th>
+      <th style="text-align:left;padding:7px 12px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);">Status</th>
     </tr></thead>
-    <tbody>${EL_CAL.map(e=>`<tr style="${e.type==='election'?'background:var(--tag-bg);':''}">
+    <tbody>${EL_CAL.map(e=>{const st=statusOf(e);return `<tr style="${e.type==='election'?'background:var(--tag-bg);':''}${st==='done'?'opacity:.6;':''}">
       <td style="padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">${e.date}</td>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tcols[e.type]||'#666'};margin-right:8px;vertical-align:middle;"></span>
         <a href="${e.link}" target="_blank" style="color:inherit">${esc(e.event)}</a>
-      </td></tr>`).join('')}</tbody></table>`;
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;">${pill(st)}</td></tr>`}).join('')}</tbody></table>`;
 }
 
 // ── PAGE NAV ──────────────────────────────────────────────

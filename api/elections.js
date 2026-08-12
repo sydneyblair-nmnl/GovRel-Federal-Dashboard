@@ -120,6 +120,16 @@ export default async function handler(req, res) {
         .slice(0, 2)
         .map(c => ({ name: c.name, party: c.party, receipts: c.m.receipts, cash: c.m.cash }));
     };
+    // The general-election opponent = best-funded candidate of the OPPOSITE party
+    // (skips same-party primary rivals). Post-primary this is effectively the nominee.
+    const opponentOf = (seat, fecIds, party) => {
+      const own = new Set(fecIds || []);
+      const incParty = party === 'R' ? 'REP' : party === 'D' ? 'DEM' : '';
+      const top = (bySeat[seat] || [])
+        .filter(c => !own.has(c.id) && c.m && c.m.receipts > 0 && (c.party || '').toUpperCase() !== incParty)
+        .sort((a, b) => b.m.receipts - a.m.receipts)[0];
+      return top ? { name: top.name, party: top.party, receipts: top.m.receipts, cash: top.m.cash } : null;
+    };
 
     const house = [], senate = [];
     for (const person of leg) {
@@ -137,7 +147,7 @@ export default async function handler(req, res) {
           chamber: 'house', seat, state: t.state, district: t.district, bioguide: big,
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
-          fec: im, challengers: challengers(seat, fecIds, party),
+          fec: im, opponent: opponentOf(seat, fecIds, party), challengers: challengers(seat, fecIds, party),
         });
       } else if (t.type === 'sen' && String(t.end || '').startsWith('2027')) {
         // Class-2 seats (term ends Jan 2027) are up in 2026
@@ -146,7 +156,7 @@ export default async function handler(req, res) {
           chamber: 'senate', seat: t.state, state: t.state, bioguide: big,
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
-          fec: im, challengers: challengers(t.state, fecIds, party),
+          fec: im, opponent: opponentOf(t.state, fecIds, party), challengers: challengers(t.state, fecIds, party),
         });
       }
     }
