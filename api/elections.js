@@ -51,6 +51,39 @@ const NOT_SEEKING_SENATE = {
   'IA': 'retiring', 'KY': 'retiring', 'MT': 'retiring', 'NC': 'retiring', 'OK': 'retiring', 'WY': 'retiring',
   'LA': 'lost primary', 'TX': 'lost primary',
 };
+// State primary dates (2026, ISO). Lets the dashboard say whether a race is DECIDED
+// or still UPCOMING, and show the primary date. LA is the decisive runoff date.
+const STATE_PRIMARY = {
+  TX: '2026-03-03', AR: '2026-03-03', NC: '2026-03-03', IL: '2026-03-17',
+  NE: '2026-05-12', WV: '2026-05-12', LA: '2026-06-27',
+  AL: '2026-05-19', GA: '2026-05-19', KY: '2026-05-19', ID: '2026-05-19', OR: '2026-05-19', PA: '2026-05-19',
+  CA: '2026-06-02', IA: '2026-06-02', MT: '2026-06-02', NM: '2026-06-02', NJ: '2026-06-02', SD: '2026-06-02',
+  ME: '2026-06-09', NV: '2026-06-09', SC: '2026-06-09', OK: '2026-06-16',
+  MD: '2026-06-23', NY: '2026-06-23', UT: '2026-06-23', CO: '2026-06-30', AZ: '2026-07-21',
+  KS: '2026-08-04', MI: '2026-08-04', MO: '2026-08-04', VA: '2026-08-04', WA: '2026-08-04', TN: '2026-08-06',
+  CT: '2026-08-11', MN: '2026-08-11', VT: '2026-08-11', WI: '2026-08-11',
+  AK: '2026-08-18', FL: '2026-08-18', WY: '2026-08-18',
+  MA: '2026-09-01', NH: '2026-09-08', RI: '2026-09-09', DE: '2026-09-15', DC: '2026-06-16',
+};
+// Confirmed 2026 Senate nominees for open seats whose primary has been decided
+// (verified from race results — the winner, NOT merely the top fundraiser; several
+// top fundraisers LOST: Krishnamoorthi IL, Craig MN, Fleming LA). [display name, party].
+const SENATE_NOMINEES = {
+  AL: [['Barry Moore', 'R'], ['Everett Wess', 'D']],
+  IA: [['Ashley Hinson', 'R'], ['Josh Turek', 'D']],
+  IL: [['Juliana Stratton', 'D'], ['Don Tracy', 'R']],
+  KY: [['Andy Barr', 'R'], ['Charles Booker', 'D']],
+  LA: [['Julia Letlow', 'R'], ['Jamie Davis', 'D']],
+  MI: [['Abdul El-Sayed', 'D'], ['Mike Rogers', 'R']],
+  MN: [['Peggy Flanagan', 'D'], ['Michele Tafoya', 'R']],
+  MT: [['Kurt Alme', 'R'], ['Alani Bankhead', 'D'], ['Seth Bodnar', 'I']],
+  NC: [['Roy Cooper', 'D'], ['Michael Whatley', 'R']],
+  OK: [['Kevin Hern', 'R'], ['Jim Priest', 'D']],
+  TX: [['James Talarico', 'D'], ['Ken Paxton', 'R']],
+};
+// House open-seat nominees are curated per-race as they're confirmed. Empty for now —
+// House open seats fall back to leading-fundraiser + primary-status labeling.
+const HOUSE_NOMINEES = {};
 
 async function getJSON(url, opts = {}, ms = 15000) {
   const ctrl = new AbortController();
@@ -176,6 +209,28 @@ export default async function handler(req, res) {
         picks.push({ name: other.name, party: other.party, receipts: other.m.receipts, cash: other.m.cash });
       return picks.sort((a, b) => b.receipts - a.receipts).slice(0, 3);
     };
+    // Curated nominees for a seat, with FEC money attached by matching last name +
+    // party against the candidate pool (money is optional — a nominee outside the
+    // fetched pool still shows, just without a $ figure).
+    const nomineeRunners = (seat, list) => list.map(([name, party]) => {
+      const last = name.trim().split(/\s+/).pop().toUpperCase();
+      const pi = party === 'R' ? 'R' : party === 'D' ? 'D' : 'I';
+      const c = (bySeat[seat] || []).find(x => (x.name || '').toUpperCase().startsWith(last + ',') && ((x.party || '').toUpperCase()[0] === pi));
+      return { name, party, nominee: true, receipts: c && c.m ? c.m.receipts : null, cash: c && c.m ? c.m.cash : null };
+    });
+    const today = new Date().toISOString().slice(0, 10);
+    // Everything the open-seat display needs: who's running (confirmed nominees if we
+    // have them, else leading fundraisers) plus whether the primary is decided.
+    const openInfo = (seat, state, fecIds, nomMap) => {
+      const nom = nomMap[seat];
+      const pd = STATE_PRIMARY[state] || null;
+      return {
+        runners: nom ? nomineeRunners(seat, nom) : runnersFor(seat, fecIds),
+        runnersAreNominees: !!nom,
+        primaryDate: pd,
+        primaryPassed: pd ? pd <= today : null,
+      };
+    };
 
     const house = [], senate = [];
     for (const person of leg) {
@@ -189,23 +244,27 @@ export default async function handler(req, res) {
       if (t.type === 'rep') {
         const seat = `${t.state}-${t.district}`;
         const footprint = FOOTPRINT_HOUSE.has(seat);
+        const oi = NOT_SEEKING_HOUSE[seat] ? openInfo(seat, t.state, fecIds, HOUSE_NOMINEES) : null;
         house.push({
           chamber: 'house', seat, state: t.state, district: t.district, bioguide: big,
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
           notSeeking: NOT_SEEKING_HOUSE[seat] || null,
-          runners: NOT_SEEKING_HOUSE[seat] ? runnersFor(seat, fecIds) : null,
+          runners: oi ? oi.runners : null, runnersAreNominees: oi ? oi.runnersAreNominees : false,
+          primaryDate: oi ? oi.primaryDate : null, primaryPassed: oi ? oi.primaryPassed : null,
           fec: im, opponent: opponentOf(seat, fecIds, party), challengers: challengers(seat, fecIds, party),
         });
       } else if (t.type === 'sen' && String(t.end || '').startsWith('2027')) {
         // Class-2 seats (term ends Jan 2027) are up in 2026
         const footprint = FOOTPRINT_SEN_STATES.has(t.state);
+        const oi = NOT_SEEKING_SENATE[t.state] ? openInfo(t.state, t.state, fecIds, SENATE_NOMINEES) : null;
         senate.push({
           chamber: 'senate', seat: t.state, state: t.state, bioguide: big,
           incumbent: name, party, committees: comms,
           footprint, flagged: footprint || FLAGGED.has(big),
           notSeeking: NOT_SEEKING_SENATE[t.state] || null,
-          runners: NOT_SEEKING_SENATE[t.state] ? runnersFor(t.state, fecIds) : null,
+          runners: oi ? oi.runners : null, runnersAreNominees: oi ? oi.runnersAreNominees : false,
+          primaryDate: oi ? oi.primaryDate : null, primaryPassed: oi ? oi.primaryPassed : null,
           fec: im, opponent: opponentOf(t.state, fecIds, party), challengers: challengers(t.state, fecIds, party),
         });
       }

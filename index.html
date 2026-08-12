@@ -1011,11 +1011,27 @@ function raceRow(r,isSen){
     (r.flagged&&!r.footprint)?'<span class="nom-flag">&#9873; Flagged</span>':''
   ].filter(Boolean).join(' ');
   const pc=r.party==='R'?'pdot-r':r.party==='D'?'pdot-d':'';
-  // For an open seat, show who's running to replace the departing member (leading
-  // fundraiser per party). Otherwise show the incumbent's general-election opponent.
-  const runList=(r.notSeeking && r.runners && r.runners.length)
-    ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">Running: ${r.runners.map(c=>`${esc(fecName(c.name))} (${esc(c.party)}) &middot; ${fmtMoney(c.receipts)}`).join(' &nbsp;|&nbsp; ')}</div>`
-    : r.notSeeking ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">Running: candidates TBD</div>` : '';
+  // For an open seat, show who's running to replace the departing member — the
+  // confirmed nominees where the primary is decided, otherwise the leading fundraiser
+  // per party with the primary date so it's clear the race isn't settled.
+  let runList='';
+  if(r.notSeeking){
+    const prim=r.primaryDate?new Date(r.primaryDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+    if(r.runners&&r.runners.length){
+      const parts=r.runners.map(c=>{
+        const nm=r.runnersAreNominees?esc(c.name):esc(fecName(c.name));
+        const money=(c.receipts!=null)?` &middot; ${fmtMoney(c.receipts)}`:'';
+        return `${nm} (${esc(c.party)})${money}`;
+      }).join(' &nbsp;|&nbsp; ');
+      let lead,suffix='';
+      if(r.runnersAreNominees){lead='&#10003; Nominees';suffix=prim?` <span style="opacity:.65">&middot; primary ${prim}</span>`:'';}
+      else if(r.primaryPassed===false){lead='Leading';suffix=prim?` <span style="opacity:.65">&middot; primary ${prim}</span>`:'';}
+      else{lead='Leading';suffix=` <span style="opacity:.65">&middot; ${prim?'primary held '+prim+' · ':''}nominee TBD</span>`;}
+      runList=`<div style="color:var(--text-muted);font-size:11px;margin-top:2px">${lead}: ${parts}${suffix}</div>`;
+    } else {
+      runList=`<div style="color:var(--text-muted);font-size:11px;margin-top:2px">Candidates TBD${prim?` &middot; primary ${r.primaryPassed?'held ':''}${prim}`:''}</div>`;
+    }
+  }
   const opp = (!r.candidate && !r.notSeeking && r.opponent)
     ? `<div style="color:var(--text-muted);font-size:11px;margin-top:2px">vs ${esc(fecName(r.opponent.name))} (${esc(r.opponent.party)}) &middot; ${fmtMoney(r.opponent.receipts)}</div>`
     : '';
