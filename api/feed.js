@@ -318,6 +318,62 @@ async function getHouseHomeland() {
   });
 }
 
+// ── Committee press releases (no RSS — via site APIs / scrape) ──
+// Filtered to Nominal-tracked topics; Congress bucket with committee badges.
+
+// House Energy & Commerce — headless-CMS JSON API
+async function getEnergyCommerce() {
+  const r = await fetchWithTimeout('https://energycommerce.house.gov/api/news');
+  const d = await r.json();
+  return (d.posts || [])
+    .filter(p => p.title && p.slug && isTrackedRelevant(p.title))
+    .slice(0, 5)
+    .map(p => {
+      const it = mk('congress', 'E&C', 'hearing', p.title, `https://energycommerce.house.gov/news/${p.slug}`, '', iso(p.published));
+      it.tags = [];
+      return it;
+    });
+}
+
+// Senate Commerce, Science & Transportation — WordPress custom post types
+async function getSenateCommerce() {
+  const both = await Promise.allSettled(['rep_press_releases', 'dem_press_releases'].map(async t => {
+    const r = await fetchWithTimeout(`https://www.commerce.senate.gov/wp-json/wp/v2/${t}?per_page=8`);
+    return r.json();
+  }));
+  const posts = both.flatMap(x => x.status === 'fulfilled' && Array.isArray(x.value) ? x.value : []);
+  return posts
+    .map(p => ({ title: ((p.title && p.title.rendered) || '').replace(/<[^>]+>/g, '').replace(/&#8217;|&#039;/g, "'").replace(/&amp;/g, '&').trim(), link: p.link, date: p.date }))
+    .filter(p => p.title && p.link && isTrackedRelevant(p.title))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .slice(0, 5)
+    .map(p => { const it = mk('congress', 'SEN COMMERCE', 'hearing', p.title, p.link, '', iso(p.date)); it.tags = []; return it; });
+}
+
+// House Science, Space & Technology — scrape listing, fetch detail page for date
+async function getHouseScience() {
+  const r = await fetchWithTimeout('https://science.house.gov/press-releases');
+  const html = await r.text();
+  const seen = new Set(); const picked = [];
+  const re = /href="(\/press-releases\?ID=[0-9A-Fa-f-]+)"[^>]*>([\s\S]*?)<\/a>/g;
+  let m;
+  while ((m = re.exec(html)) && picked.length < 5) {
+    const href = m[1];
+    const title = m[2].replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;|&#8217;/g, "'").replace(/\s+/g, ' ').trim();
+    if (!title || seen.has(href) || !isTrackedRelevant(title)) continue;
+    seen.add(href); picked.push({ href, title });
+  }
+  const out = [];
+  for (const x of picked) {
+    let date = null;
+    try { const dm = (await (await fetchWithTimeout('https://science.house.gov' + x.href)).text()).match(/20\d{2}-\d{2}-\d{2}/); if (dm) date = dm[0]; } catch (e) {}
+    const it = mk('congress', 'HOUSE SS&T', 'hearing', x.title, 'https://science.house.gov' + x.href, '', iso(date));
+    it.tags = [];
+    out.push(it);
+  }
+  return out;
+}
+
 // ── NASA: news, filtered to space/defense relevance ──────────
 const getNASA = () => rssSource({ url:'https://www.nasa.gov/news-release/feed/', source:'nasa', label:'NASA', type:'report', limit:4, requireDefense:false })
   .then(items => {
@@ -379,6 +435,9 @@ export default async function handler(req, res) {
     ['congress', getCommitteeHearings],
     ['congress', getHouseHomeland],
     ['congress', getHouseApprops],
+    ['congress', getEnergyCommerce],
+    ['congress', getSenateCommerce],
+    ['congress', getHouseScience],
     ['nasa', getNASA],
     ['gao', getGAO],
     ['homeland', getHomeland],
