@@ -374,6 +374,86 @@ async function getHouseScience() {
   return out;
 }
 
+// House Armed Services (HASC) — old House CMS: scrape the press-release listing
+// (documentquery), dedup by DocumentID, fetch each detail page for its date.
+async function getHASC() {
+  const r = await fetchWithTimeout('https://armedservices.house.gov/news/documentquery.aspx?DocumentTypeID=27');
+  const html = await r.text();
+  const seen = new Set(); const picked = [];
+  const re = /href="(\/?(?:news\/)?documentsingle\.aspx\?DocumentID=(\d+))"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(html)) && picked.length < 5) {
+    const id = m[2];
+    const title = m[3].replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;|&#8217;/g, "'").replace(/\s+/g, ' ').trim();
+    if (!title || title.length < 15 || /read more/i.test(title) || seen.has(id) || !isTrackedRelevant(title)) continue;
+    seen.add(id); picked.push({ id, title });
+  }
+  const out = [];
+  for (const x of picked) {
+    const url = 'https://armedservices.house.gov/news/documentsingle.aspx?DocumentID=' + x.id;
+    let date = null;
+    try { const dm = (await (await fetchWithTimeout(url)).text()).match(/20\d{2}-\d{2}-\d{2}/); if (dm) date = dm[0]; } catch (e) {}
+    const it = mk('congress', 'HASC', 'hearing', x.title, url, '', iso(date));
+    it.tags = [];
+    out.push(it);
+  }
+  return out;
+}
+
+// Senate Armed Services (SASC) — modern Senate CMS: article links are full
+// /press-releases/<slug> URLs and the listing carries the date next to each.
+async function getSASC() {
+  const r = await fetchWithTimeout('https://www.armed-services.senate.gov/press-releases');
+  const html = await r.text();
+  const MON = '(?:January|February|March|April|May|June|July|August|September|October|November|December)';
+  const dateRe = new RegExp(MON + '\\s+\\d{1,2},\\s+20\\d{2}');
+  const seen = new Set(); const out = [];
+  const re = /href="(https:\/\/www\.armed-services\.senate\.gov\/press-releases\/[^"?]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(html)) && out.length < 5) {
+    const url = m[1];
+    const title = m[2].replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;|&#8217;/g, "'").replace(/\s+/g, ' ').trim();
+    if (!title || title.length < 15 || /continue reading/i.test(title) || seen.has(url) || !isTrackedRelevant(title)) continue;
+    seen.add(url);
+    const win = html.slice(Math.max(0, m.index - 350), m.index + m[0].length + 120);
+    const dm = win.match(dateRe);
+    const it = mk('congress', 'SASC', 'hearing', title, url, '', iso(dm ? dm[0] : null));
+    it.tags = [];
+    out.push(it);
+  }
+  return out;
+}
+
+// Senate Appropriations — modern Senate CMS split into majority/minority feeds;
+// listings carry no dates, so fetch each article's detail page for its date.
+async function getSenApprops() {
+  const both = await Promise.allSettled(['majority', 'minority'].map(async side => {
+    const r = await fetchWithTimeout('https://www.appropriations.senate.gov/news/' + side);
+    const html = await r.text();
+    const seen = new Set(); const picked = [];
+    const re = /href="(\/news\/(?:majority|minority)\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m;
+    while ((m = re.exec(html)) && picked.length < 4) {
+      const href = m[1];
+      const title = m[2].replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;|&#8217;/g, "'").replace(/\s+/g, ' ').trim();
+      if (!title || title.length < 15 || /continue reading/i.test(title) || href.endsWith('/table') || seen.has(href) || !isTrackedRelevant(title)) continue;
+      seen.add(href); picked.push({ href, title });
+    }
+    return picked;
+  }));
+  const picked = both.flatMap(p => p.status === 'fulfilled' ? p.value : []);
+  const out = [];
+  for (const x of picked) {
+    const url = 'https://www.appropriations.senate.gov' + x.href;
+    let date = null;
+    try { const dm = (await (await fetchWithTimeout(url)).text()).match(/20\d{2}-\d{2}-\d{2}/); if (dm) date = dm[0]; } catch (e) {}
+    const it = mk('congress', 'SEN APPROPS', 'hearing', x.title, url, '', iso(date));
+    it.tags = [];
+    out.push(it);
+  }
+  return out.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || '')).slice(0, 5);
+}
+
 // ── NASA: news, filtered to space/defense relevance ──────────
 const getNASA = () => rssSource({ url:'https://www.nasa.gov/news-release/feed/', source:'nasa', label:'NASA', type:'report', limit:4, requireDefense:false })
   .then(items => {
@@ -438,6 +518,9 @@ export default async function handler(req, res) {
     ['congress', getEnergyCommerce],
     ['congress', getSenateCommerce],
     ['congress', getHouseScience],
+    ['congress', getHASC],
+    ['congress', getSASC],
+    ['congress', getSenApprops],
     ['nasa', getNASA],
     ['gao', getGAO],
     ['homeland', getHomeland],
