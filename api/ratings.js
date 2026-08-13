@@ -49,7 +49,10 @@ async function getSenate() {
   const sec = await ratingsSection('2026 United States Senate elections');
   const wt = await wikitext('2026 United States Senate elections', sec);
   const out = {};
-  const parts = wt.split(/!\s*\[\[2026 United States Senate election in ([^|\]]+?)(?:\|[^\]]+)?\]\]/);
+  // Optional "special " so special elections (FL for Rubio's seat, OH for Vance's) are
+  // their own split boundaries — otherwise the preceding state absorbs their ratings
+  // rows and its consensus gets skewed (e.g. Safe-D Delaware averaged toward Toss-up).
+  const parts = wt.split(/!\s*\[\[2026 United States Senate (?:special )?election in ([^|\]]+?)(?:\|[^\]]+)?\]\]/);
   for (let i = 1; i < parts.length; i += 2) {
     const code = STATE[parts[i].trim()];
     const r = consensusRating(parts[i + 1] || '');

@@ -139,6 +139,13 @@ const HOUSE_NOMINEES = {
   'WA-4': [['Amanda McKinney', 'R'], ['John Duresky', 'D']],
   'DC-0': [['Robert White', 'D']],
 };
+// Manual challenger override for RUNNING-incumbent seats where the FEC top fundraiser
+// is stale (dropped out / replaced by the party). [name, party], keyed by seat.
+const OPPONENT_OVERRIDE = {
+  // ME: Platner won the June 9 Dem primary, then withdrew (Jul 10); Maine Democrats
+  // formally nominated Troy Jackson (Jul 25) to face Collins. Platner still tops FEC $.
+  ME: ['Troy Jackson', 'D'],
+};
 
 async function getJSON(url, opts = {}, ms = 15000) {
   const ctrl = new AbortController();
@@ -245,6 +252,17 @@ export default async function handler(req, res) {
         .sort((a, b) => b.m.receipts - a.m.receipts)[0];
       return top ? { name: top.name, party: top.party, receipts: top.m.receipts, cash: top.m.cash } : null;
     };
+    // Manual opponent override (dropped-out/replaced candidates FEC still ranks first),
+    // with money attached by matching last name + party against the pool.
+    const overrideOpp = seat => {
+      const o = OPPONENT_OVERRIDE[seat];
+      if (!o) return undefined;
+      const [name, party] = o;
+      const last = name.trim().split(/\s+/).pop().toUpperCase();
+      const pi = party === 'R' ? 'R' : party === 'D' ? 'D' : 'I';
+      const c = (bySeat[seat] || []).find(x => (x.name || '').toUpperCase().startsWith(last + ',') && ((x.party || '').toUpperCase()[0] === pi));
+      return { name, party, receipts: c && c.m ? c.m.receipts : null, cash: c && c.m ? c.m.cash : null };
+    };
     // For OPEN seats (no incumbent on the ballot): who's actually running. Take the
     // best-funded candidate of each major party for the seat, plus any better-funded
     // independent, so both sides show. Money is the only free post-primary signal, so
@@ -320,7 +338,7 @@ export default async function handler(req, res) {
           notSeeking: NOT_SEEKING_SENATE[t.state] || null,
           runners: oi ? oi.runners : null, runnersAreNominees: oi ? oi.runnersAreNominees : false,
           primaryDate: oi ? oi.primaryDate : null, primaryPassed: oi ? oi.primaryPassed : null,
-          fec: im, opponent: opponentOf(t.state, fecIds, party), challengers: challengers(t.state, fecIds, party),
+          fec: im, opponent: overrideOpp(t.state) || opponentOf(t.state, fecIds, party), challengers: challengers(t.state, fecIds, party),
         });
       }
     }
